@@ -119,6 +119,7 @@ body{margin:0;background:var(--anatomy-page);color:var(--anatomy-text);font:14px
 .iso-svg [data-part][data-sel] .iso-edge{stroke:var(--anatomy-lit);stroke-width:1.1px}
 .iso-svg [data-part][data-sel] .iso-top{fill:var(--anatomy-lit-top)}
 .iso-svg [data-part][data-sel] .iso-shade{fill:var(--anatomy-lit-shade)}
+.iso-plate-corner[data-corner="hint"][data-on]{color:var(--anatomy-strong)}
 .iso-svg .blood{stroke:none;pointer-events:none}
 .iso-svg .blood[data-col="red"]{fill:var(--anatomy-red)}
 .iso-svg .blood[data-col="blue"]{fill:var(--anatomy-blue)}
@@ -887,6 +888,7 @@ const ecgPath = $("[data-ecg]"), ecgDot = $("[data-ecg-dot]"), lamp = $("[data-l
 const nodes = { sa: $('[data-node="sa"]'), av: $('[data-node="av"]') };
 const info = { name: document.getElementById("i-name"), side: document.getElementById("i-side"), fn: document.getElementById("i-fn"), now: document.getElementById("i-now") };
 const chips = [...document.querySelectorAll("[data-chip]")];
+const hintEl = document.querySelector('[data-corner="hint"]');
 const bpmOut = document.getElementById("bpm");
 let bpm = 72, t = 0, last = 0, frame = 0, visible = false, paused = false, sel = null;
 const sstep = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
@@ -1002,9 +1004,10 @@ function select(id) {
   svg.querySelectorAll("[data-part]").forEach((g) => g.toggleAttribute("data-sel", g.dataset.part === id));
   svg.toggleAttribute("data-has-sel", !!id);
   chips.forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.chip === id)));
-  if (!id) { info.name.textContent = "Toca una pieza"; info.side.textContent = "Corazón humano · modelo de bomba doble"; info.fn.textContent = "Cada pieza del modelo es una parte real del corazón. Tócala, o elige una en la lista, para ver cómo se llama, qué hace y qué está haciendo en este instante del latido."; info.now.textContent = "—"; return; }
+  if (!id) { info.name.textContent = "Toca una pieza"; info.side.textContent = "Corazón humano · modelo de bomba doble"; info.fn.textContent = "Cada pieza del modelo es una parte real del corazón. Tócala, o elige una en la lista, para ver cómo se llama, qué hace y qué está haciendo en este instante del latido."; info.now.textContent = "—"; hintEl.textContent = "Toca una pieza"; hintEl.removeAttribute("data-on"); return; }
   const p = PARTS[id];
   info.name.textContent = p.name; info.side.textContent = p.side; info.fn.textContent = p.fn;
+  hintEl.textContent = "● " + p.name; hintEl.setAttribute("data-on", "");
   draw(0);
 }
 svg.addEventListener("pointerdown", (e) => {
