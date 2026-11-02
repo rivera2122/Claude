@@ -1,0 +1,603 @@
+<title>Corazón humano 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a full-width specimen stage (the heart floats in it), then an info card and controls side by side, one column on phones. */
+:root{
+  --bg:#eef0f3; --card:#ffffff; --ink:#15171c; --text:#3d4149; --muted:#7a808b; --line:#dde1e7;
+  --accent:#b3202c; --accent-soft:#f6dfe1; --venous:#3c5fc9; --ok:#1f8a5b;
+  --stage:radial-gradient(120% 90% at 50% 35%,#ffffff 0%,#e9ecf1 70%);
+  --font:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --shadow:0 1px 0 #ffffff inset,0 0 0 1px #0000000d,0 8px 24px -12px #0000002e;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d0e11; --card:#15171c; --ink:#f1f2f4; --text:#c3c7cf; --muted:#80868f; --line:#262a31;
+  --accent:#ff5a63; --accent-soft:#3a1519; --venous:#7c9cff; --ok:#4cd393;
+  --stage:radial-gradient(120% 90% at 50% 35%,#1d2026 0%,#0d0e11 72%);
+  --shadow:0 1px 0 #ffffff0a inset,0 0 0 1px #ffffff0d,0 8px 24px -12px #000000aa;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d0e11; --card:#15171c; --ink:#f1f2f4; --text:#c3c7cf; --muted:#80868f; --line:#262a31;
+  --accent:#ff5a63; --accent-soft:#3a1519; --venous:#7c9cff; --ok:#4cd393;
+  --stage:radial-gradient(120% 90% at 50% 35%,#1d2026 0%,#0d0e11 72%);
+  --shadow:0 1px 0 #ffffff0a inset,0 0 0 1px #ffffff0d,0 8px 24px -12px #000000aa;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font:15px/1.6 var(--font);-webkit-font-smoothing:antialiased}
+.page{max-width:1080px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
+.eyebrow{font:500 11px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+h1{margin:2px 0 0;font:600 clamp(26px,4vw,36px)/1.1 var(--font);color:var(--ink);letter-spacing:-.01em;text-wrap:balance}
+.lede{margin:0;color:var(--muted);font-size:14px;max-width:48ch}
+.stage{position:relative;border-radius:18px;background:var(--stage);box-shadow:var(--shadow);overflow:hidden;aspect-ratio:16/11;max-width:100%;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.stage.grabbing{cursor:grabbing}
+.stage.over-part{cursor:pointer}
+@media (max-width:640px){.stage{aspect-ratio:4/5}}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.corner{position:absolute;font:500 11px/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);pointer-events:none}
+.corner.tl{top:14px;left:16px}.corner.tr{top:14px;right:16px;text-align:right}
+.corner.bl{bottom:14px;left:16px}
+@media (max-width:640px){.corner.bl{bottom:36px}}.corner.br{bottom:14px;right:16px;text-align:right;color:var(--ink)}
+.corner .beat{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px;vertical-align:1px;transform:scale(var(--pulse,1));opacity:calc(.35 + .65 * (var(--pulse,1) - 1) * 3)}
+.tag{position:absolute;left:0;top:0;transform:translate(-50%,calc(-100% - 14px));pointer-events:none;white-space:nowrap;font:600 13px/1 var(--font);color:var(--ink);background:var(--card);padding:8px 11px;border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .2s}
+.tag::after{content:"";position:absolute;left:50%;bottom:-11px;width:1px;height:10px;background:var(--ink);opacity:.5}
+.tag::before{content:"";position:absolute;left:calc(50% - 3px);bottom:-17px;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
+.tag.on{opacity:1}
+.loading{position:absolute;inset:0;display:grid;place-items:center;font:500 12px var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px;min-width:0}
+.card h2{margin:4px 0 2px;font:600 24px/1.2 var(--font);color:var(--ink);text-wrap:balance}
+.card .side{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.card .fn{margin:0 0 14px;max-width:62ch}
+.now{display:flex;gap:10px;align-items:baseline;border-top:1px solid var(--line);padding-top:10px;font:12px/1.5 var(--mono)}
+.now b{font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.now span{color:var(--ink)}
+.ecg{display:block;width:100%;height:56px;margin-top:12px;border-radius:10px;background:color-mix(in srgb,var(--ok) 7%,var(--bg))}
+.ecg path{fill:none;stroke:var(--ok);stroke-width:1.5;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.ecg circle{fill:var(--ok)}
+.controls{display:flex;flex-direction:column;gap:14px;min-width:0}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font:12px/1 var(--mono);color:var(--muted)}
+.row .lbl{min-width:5ch}
+.row output{color:var(--ink);min-width:3ch;text-align:center;font-variant-numeric:tabular-nums}
+button{font:500 12px/1 var(--mono);color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:8px 11px;cursor:pointer}
+button:hover{color:var(--ink);border-color:var(--muted)}
+button[aria-pressed="true"]{color:var(--card);background:var(--ink);border-color:var(--ink)}
+button:focus-visible,.stage:focus-visible{outline:2px solid var(--venous);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.note{font-size:12px;color:var(--muted);margin:0}
+</style>
+
+<div class="page">
+  <header>
+    <div>
+      <div class="eyebrow">Anatomía · modelo 3D interactivo</div>
+      <h1>Corazón humano</h1>
+    </div>
+    <p class="lede">Arrastra para girarlo, pellizca o usa la rueda para acercarte y toca cualquier parte para saber qué es y para qué sirve.</p>
+  </header>
+
+  <div class="stage" id="stage" tabindex="0" aria-label="Corazón en 3D. Flechas para girar, más y menos para acercar, Tab para recorrer las partes, Escape para deseleccionar.">
+    <div class="loading" id="loading">Cargando modelo…</div>
+    <div class="corner tl" id="view">Vista anterior</div>
+    <div class="corner tr" id="angle">0°</div>
+    <div class="corner bl" id="hint">Arrastra · toca una parte</div>
+    <div class="corner br"><span class="beat" id="beat"></span><span id="readout">72 lpm · Llenado</span></div>
+    <div class="tag" id="tag"></div>
+  </div>
+
+  <div class="grid">
+    <section class="card" aria-live="polite">
+      <div class="eyebrow">Parte seleccionada</div>
+      <h2 id="i-name">Toca una parte</h2>
+      <p class="side" id="i-side">Corazón adulto · unos 12 cm de alto y 300 g</p>
+      <p class="fn" id="i-fn">El corazón late unas 100 000 veces al día y mueve cerca de 7 000 litros de sangre. Toca una cavidad, un vaso o una arteria coronaria para ver su nombre, su función y lo que está haciendo en este instante del latido.</p>
+      <div class="now"><b>Ahora</b><span id="i-now">—</span></div>
+      <svg class="ecg" viewBox="0 0 300 56" preserveAspectRatio="none" aria-label="Electrocardiograma en vivo"><path id="ecg-line" d=""/><circle id="ecg-dot" cx="300" cy="34" r="2.6"/></svg>
+    </section>
+    <div class="controls">
+      <div class="row"><span class="lbl">Vista</span><button type="button" data-view="front">Frente</button><button type="button" data-view="left">Izquierda</button><button type="button" data-view="back">Atrás</button><button type="button" data-view="right">Derecha</button><button type="button" data-view="top">Arriba</button></div>
+      <div class="row"><span class="lbl">Ritmo</span><button type="button" id="slower" aria-label="Más lento">−10</button><output id="bpm">72</output><span>lpm</span><button type="button" id="faster" aria-label="Más rápido">+10</button><button type="button" id="pause" aria-pressed="false">Pausar latido</button></div>
+      <div class="row"><span class="lbl">Giro</span><button type="button" id="spin" aria-pressed="true">Automático</button><button type="button" id="zin" aria-label="Acercar">＋</button><button type="button" id="zout" aria-label="Alejar">−</button></div>
+      <div class="legend"><span><i style="background:#b84a50"></i>Arterias</span><span><i style="background:#6b2a3c"></i>Venas</span><span><i style="background:#c9a073"></i>Grasa y coronarias</span></div>
+      <div class="chips" id="chips" role="group" aria-label="Partes del corazón"></div>
+      <p class="note">Modelo procedural simplificado: las proporciones son aproximadas y las válvulas quedan dentro, no se ven desde fuera. Lados anatómicos: el lado derecho del corazón aparece a la izquierda de la pantalla en la vista de frente.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+"use strict";
+const stage = document.getElementById("stage");
+if (!window.THREE) { document.getElementById("loading").textContent = "No se pudo cargar el motor 3D"; return; }
+const T3 = THREE;
+
+// ---------------- parts catalogue ----------------
+const PARTS = {
+  ra: { name: "Aurícula derecha", side: "Corazón derecho · sangre sin oxígeno", fn: "Recibe la sangre pobre en oxígeno que vuelve del cuerpo por las venas cavas. Al final de la diástole se contrae y empuja el último 20–30 % del llenado al ventrículo derecho. En su pared está el nodo sinusal, el marcapasos natural." },
+  la: { name: "Aurícula izquierda", side: "Corazón izquierdo · sangre oxigenada", fn: "Cavidad posterior que recibe la sangre recién oxigenada de las cuatro venas pulmonares y la pasa al ventrículo izquierdo a través de la válvula mitral." },
+  laa: { name: "Orejuela izquierda", side: "Apéndice de la aurícula izquierda", fn: "Pequeña bolsa rugosa de la aurícula izquierda. Si el ritmo es irregular (fibrilación auricular) la sangre puede estancarse aquí y formar coágulos; por eso a veces se cierra con un dispositivo." },
+  rv: { name: "Ventrículo derecho", side: "Corazón derecho · bomba pulmonar", fn: "Forma casi toda la cara anterior del corazón. Bombea la sangre sin oxígeno a los pulmones por la arteria pulmonar; su pared es fina (3–5 mm) porque solo vence unos 25 mmHg." },
+  lv: { name: "Ventrículo izquierdo", side: "Corazón izquierdo · bomba sistémica", fn: "La cámara más fuerte: pared de 8–12 mm. Forma la punta (ápex) del corazón y expulsa unos 70 ml por latido hacia la aorta a unos 120 mmHg para irrigar todo el cuerpo." },
+  aorta: { name: "Aorta", side: "Arteria principal · sangre oxigenada", fn: "Sale del ventrículo izquierdo, sube (aorta ascendente), se curva hacia atrás formando el arco aórtico y baja por delante de la columna (aorta descendente). Mide unos 2,5–3 cm y su pared elástica mantiene el flujo entre latidos." },
+  arch: { name: "Ramas del arco aórtico", side: "Tronco braquiocefálico · carótida izquierda · subclavia izquierda", fn: "Tres arterias nacen de la curva de la aorta: el tronco braquiocefálico (brazo derecho y lado derecho de la cabeza), la carótida común izquierda (cerebro y cara) y la subclavia izquierda (brazo izquierdo)." },
+  pa: { name: "Tronco pulmonar", side: "Hacia los pulmones · sangre sin oxígeno", fn: "Sale del ventrículo derecho y se divide en las arterias pulmonares derecha e izquierda. Lleva la sangre a los pulmones para soltar CO₂ y cargar oxígeno; es de las pocas arterias con sangre pobre en oxígeno." },
+  svc: { name: "Vena cava superior", side: "Retorno de cabeza, cuello y brazos", fn: "Devuelve a la aurícula derecha la sangre sin oxígeno de la mitad superior del cuerpo. No tiene válvula de entrada." },
+  ivc: { name: "Vena cava inferior", side: "Retorno de abdomen y piernas", fn: "La vena más grande del cuerpo. Atraviesa el diafragma y trae a la aurícula derecha la sangre de la mitad inferior; al inspirar hondo su flujo aumenta." },
+  pv: { name: "Venas pulmonares", side: "Desde los pulmones · sangre oxigenada", fn: "Cuatro venas, dos de cada pulmón, que llegan por detrás a la aurícula izquierda con sangre rica en oxígeno. Son las únicas venas del adulto que la transportan." },
+  lad: { name: "Arteria descendente anterior", side: "Rama de la coronaria izquierda", fn: "Baja por el surco entre ambos ventrículos hasta la punta. Irriga la pared anterior y dos tercios del tabique; su obstrucción causa los infartos más extensos, por eso se la llama «la arteria de la viuda»." },
+  rca: { name: "Arteria coronaria derecha", side: "Nace de la aorta · surco auriculoventricular derecho", fn: "Rodea el lado derecho del corazón. Irriga el ventrículo derecho y, en la mayoría de las personas, el nodo sinusal, el nodo auriculoventricular y la cara inferior del ventrículo izquierdo." },
+  cx: { name: "Arteria circunfleja", side: "Rama de la coronaria izquierda", fn: "Rodea el lado izquierdo por el surco entre aurícula y ventrículo e irriga la pared lateral y posterior del ventrículo izquierdo." },
+};
+const LIST = ["ra", "la", "laa", "rv", "lv", "aorta", "arch", "pa", "svc", "ivc", "pv", "lad", "rca", "cx"];
+
+// ---------------- the beat ----------------
+let bpm = 72, beatT = 0, paused = false;
+const still = matchMedia("(prefers-reduced-motion: reduce)");
+const sstep = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+const bump = (x, a, b) => (x <= a || x >= b ? 0 : Math.sin(Math.PI * (x - a) / (b - a)));
+function state(ph) {
+  const atrial = bump(ph, 0, 0.13), vent = bump(ph, 0.14, 0.55);
+  const slOpen = sstep(0.19, 0.22, ph) * (1 - sstep(0.46, 0.5, ph));
+  const phase = ph < 0.13 ? "Sístole auricular" : ph < 0.2 ? "Contracción isovolumétrica" : ph < 0.48 ? "Eyección" : ph < 0.58 ? "Relajación" : "Llenado";
+  return { atrial, vent, slOpen, phase };
+}
+function ecgAt(p) {
+  const g = (x, m, w) => Math.exp(-((x - m) * (x - m)) / (2 * w * w));
+  return 0.15 * g(p, 0.06, 0.022) - 0.1 * g(p, 0.135, 0.007) + g(p, 0.15, 0.008) - 0.25 * g(p, 0.166, 0.008) + 0.3 * g(p, 0.38, 0.045);
+}
+const coronaryNow = (s) => (s.vent > 0.2 ? "El músculo contraído la comprime: casi no entra sangre" : "Llenándose: el corazón se irriga sobre todo en diástole");
+const NOW = {
+  ra: (s) => (s.atrial > 0.05 ? "Contrayéndose: empuja sangre al ventrículo derecho" : "Llenándose con sangre de las cavas"),
+  la: (s) => (s.atrial > 0.05 ? "Contrayéndose: empuja sangre al ventrículo izquierdo" : "Llenándose con sangre de los pulmones"),
+  laa: (s) => (s.atrial > 0.05 ? "Se vacía junto con la aurícula" : "Se llena con la aurícula"),
+  rv: (s) => (s.vent > 0.05 ? (s.slOpen > 0.5 ? "Expulsando sangre al tronco pulmonar" : "Contrayéndose con las válvulas cerradas") : "Relajado, llenándose"),
+  lv: (s) => (s.vent > 0.05 ? (s.slOpen > 0.5 ? "Expulsando sangre a la aorta" : "Contrayéndose con las válvulas cerradas") : "Relajado, llenándose"),
+  aorta: (s) => (s.slOpen > 0.5 ? "Recibe el chorro del ventrículo izquierdo y se distiende" : "Rebote elástico: sigue empujando la sangre"),
+  arch: (s) => (s.slOpen > 0.5 ? "Onda de pulso hacia la cabeza y los brazos" : "Flujo continuo, más lento"),
+  pa: (s) => (s.slOpen > 0.5 ? "Recibe el chorro del ventrículo derecho" : "Válvula pulmonar cerrada"),
+  svc: () => "Flujo continuo hacia la aurícula derecha",
+  ivc: () => "Flujo continuo hacia la aurícula derecha",
+  pv: () => "Flujo continuo hacia la aurícula izquierda",
+  lad: coronaryNow, rca: coronaryNow, cx: coronaryNow,
+};
+
+// ---------------- renderer ----------------
+const renderer = new T3.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputEncoding = T3.sRGBEncoding;
+renderer.toneMapping = T3.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+stage.insertBefore(renderer.domElement, stage.firstChild);
+const scene = new T3.Scene();
+const camera = new T3.PerspectiveCamera(32, 1, 0.1, 100);
+let camDist = 7.4;
+
+// lights: soft studio
+scene.add(new T3.HemisphereLight(0xfff4f0, 0x40282a, 0.75));
+const key = new T3.DirectionalLight(0xffffff, 1.55); key.position.set(3, 5, 6); scene.add(key);
+const fill = new T3.DirectionalLight(0xffe2dc, 0.45); fill.position.set(-5, 1, 3); scene.add(fill);
+const rim = new T3.DirectionalLight(0xffffff, 0.9); rim.position.set(-2, 3, -6); scene.add(rim);
+
+// environment for the wet clearcoat: a tiny gradient room
+(function env() {
+  const pm = new T3.PMREMGenerator(renderer);
+  const room = new T3.Scene();
+  const box = new T3.Mesh(new T3.BoxGeometry(10, 10, 10), new T3.MeshBasicMaterial({ side: T3.BackSide, vertexColors: true }));
+  const pos = box.geometry.attributes.position, col = [];
+  for (let i = 0; i < pos.count; i++) { const y = pos.getY(i) / 5; const v = 0.35 + 0.65 * Math.max(0, y); col.push(v, v * 0.97, v * 0.95); }
+  box.geometry.setAttribute("color", new T3.Float32BufferAttribute(col, 3));
+  room.add(box);
+  const lamp = new T3.Mesh(new T3.PlaneGeometry(4, 2), new T3.MeshBasicMaterial({ color: 0xffffff }));
+  lamp.position.set(2, 4.5, 2); lamp.lookAt(0, 0, 0); lamp.material.color.multiplyScalar(6); room.add(lamp);
+  scene.environment = pm.fromScene(room, 0.04).texture;
+})();
+
+// ---------------- helpers ----------------
+const V = (x, y, z) => new T3.Vector3(x, y, z);
+function noise3(x, y, z) {
+  return (Math.sin(x * 5.1 + y * 1.7) * Math.cos(z * 4.3 - x * 2.1) + Math.sin(y * 7.3 + z * 3.1) * 0.5 + Math.cos(x * 11.7 - z * 9.1 + y * 5.3) * 0.25) / 1.75;
+}
+const muscleMat = () => new T3.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.48, metalness: 0, clearcoat: 0.55, clearcoatRoughness: 0.32, sheen: 0, envMapIntensity: 0.9 });
+const tissueMat = (hex, rough = 0.42, coat = 0.5) => new T3.MeshPhysicalMaterial({ color: new T3.Color(hex).convertSRGBToLinear(), roughness: rough, metalness: 0, clearcoat: coat, clearcoatRoughness: 0.35, envMapIntensity: 0.9 });
+const pickables = [];
+function tag(mesh, part) { mesh.userData.part = part; pickables.push(mesh); return mesh; }
+
+// vertex colours with variation for organic look
+function paint(geo, base, varyAmt, fn) {
+  const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), c = new T3.Color(base).convertSRGBToLinear();
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const n = noise3(x * 1.3, y * 1.3, z * 1.3);
+    let r = c.r, g = c.g, b = c.b;
+    const k = 1 + n * varyAmt;
+    r *= k; g *= k; b *= k;
+    if (fn) [r, g, b] = fn(x, y, z, r, g, b);
+    col[i * 3] = r; col[i * 3 + 1] = g; col[i * 3 + 2] = b;
+  }
+  geo.setAttribute("color", new T3.BufferAttribute(col, 3));
+  return col;
+}
+
+// ---------------- the model ----------------
+const heart = new T3.Group();       // everything; rotated by the user
+const lift = new T3.Group();        // floats up and down
+lift.add(heart); scene.add(lift);
+heart.position.y = -0.25;
+
+// ventricles: one deformed sphere, apex down and to the patient's left (screen right)
+const VC = V(0.05, -0.35, 0.02), VS = 1.0;
+function ventShape(dir) {
+  const p = dir.clone();
+  if (p.y < 0) { const t = -p.y; const taper = 1 - 0.42 * Math.pow(t, 1.6); p.x *= taper; p.z *= taper; p.y *= 1.5; p.x += 0.32 * Math.pow(t, 1.8); }
+  else p.y *= 0.62;
+  p.x *= 1.02; p.z *= 0.8;
+  // interventricular grooves (anterior and posterior)
+  const ang = Math.atan2(dir.x, dir.z);
+  const g1 = Math.exp(-Math.pow(ang - 0.28, 2) / 0.012) * Math.max(0, 1 - Math.abs(dir.y + 0.1));
+  const g2 = Math.exp(-Math.pow(ang + 2.75, 2) / 0.014) * Math.max(0, 1 - Math.abs(dir.y + 0.1));
+  const r = 1 - 0.035 * (g1 + g2) + 0.012 * noise3(dir.x * 2, dir.y * 2, dir.z * 2);
+  return p.multiplyScalar(r);
+}
+const ventGeo = new T3.SphereGeometry(1, 128, 96);
+const region = [];
+{
+  const pos = ventGeo.attributes.position, d = new T3.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    d.set(pos.getX(i), pos.getY(i), pos.getZ(i)).normalize();
+    const ang = Math.atan2(d.x, d.z);
+    region.push(ang > -2.75 && ang < 0.28 ? "rv" : "lv");
+    const p = ventShape(d);
+    pos.setXYZ(i, p.x, p.y, p.z);
+  }
+  ventGeo.computeVertexNormals();
+}
+const ventBase = Float32Array.from(paint(ventGeo, 0x7a1a22, 0.14, (x, y, z, r, g, b) => {
+  const top = Math.max(0, y - 0.25) * 1.2;                  // paler, fattier near the base
+  return [r + top * 0.12, g + top * 0.05, b + top * 0.04];
+}));
+const ventMesh = tag(new T3.Mesh(ventGeo, muscleMat()), "ventricles");
+const ventricles = new T3.Group(); ventricles.position.copy(VC); ventricles.scale.setScalar(VS);
+ventricles.add(ventMesh); heart.add(ventricles);
+
+// a surface point on the ventricles (local), from angle around and latitude
+function surf(ang, lat, out = 0.0) {
+  const d = V(Math.sin(ang) * Math.cos(lat), Math.sin(lat), Math.cos(ang) * Math.cos(lat)).normalize();
+  const p = ventShape(d);
+  return p.multiplyScalar(1 + out);
+}
+function tubeAlong(points, r, mat, closed = false) {
+  const curve = new T3.CatmullRomCurve3(points, closed, "centripetal");
+  const g = new T3.TubeGeometry(curve, Math.max(24, points.length * 12), r, 12, closed);
+  return new T3.Mesh(g, mat);
+}
+// coronary arteries with a band of epicardial fat under them
+const fatMat = tissueMat(0xc9a073, 0.6, 0.3), corMat = tissueMat(0xa8343c, 0.36, 0.65), cvMat = tissueMat(0x4a3550, 0.4, 0.5);
+function coronary(part, pts, r) {
+  const g = new T3.Group();
+  g.add(tag(tubeAlong(pts.map((p) => p.clone()), r * 1.35, fatMat), part));
+  const lift2 = pts.map((p) => p.clone().multiplyScalar(1.022));
+  g.add(tag(tubeAlong(lift2, r, corMat), part));
+  ventricles.add(g);
+}
+const path = (f, n = 18) => Array.from({ length: n }, (_, i) => f(i / (n - 1)));
+coronary("lad", path((u) => surf(0.26 + 0.18 * u, 0.78 - 2.25 * u, 0.012)), 0.035);
+coronary("lad", path((u) => surf(0.36 + 0.55 * u, 0.25 - 0.55 * u, 0.012), 10), 0.022);   // diagonal
+coronary("lad", path((u) => surf(0.31 + 0.5 * u, -0.25 - 0.5 * u, 0.012), 8), 0.018);
+coronary("rca", path((u) => surf(-0.15 - 2.5 * u, 0.62 - 0.08 * Math.sin(u * 3), 0.012), 22), 0.035);
+coronary("rca", path((u) => surf(-0.9 - 0.2 * u, 0.5 - 1.3 * u, 0.012), 10), 0.02);       // acute marginal
+coronary("rca", path((u) => surf(-2.7 + 0.05 * u, 0.55 - 1.6 * u, 0.012), 14), 0.026);      // posterior descending
+coronary("cx", path((u) => surf(0.62 + 1.9 * u, 0.62, 0.012), 16), 0.03);
+coronary("cx", path((u) => surf(1.35 + 0.15 * u, 0.5 - 1.2 * u, 0.012), 10), 0.02);        // obtuse marginal
+// a coronary vein beside the LAD (great cardiac vein), as on a real heart
+ventricles.add(tag(tubeAlong(path((u) => surf(0.36 + 0.14 * u, 0.7 - 1.5 * u, 0.02), 14), 0.022, cvMat), "lad"));
+
+// atria
+function blob(center, scale, color, rough, wrinkle, part) {
+  const g = new T3.SphereGeometry(1, 96, 72);
+  const pos = g.attributes.position, d = new T3.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    d.set(pos.getX(i), pos.getY(i), pos.getZ(i)).normalize();
+    const n = noise3(d.x * 2, d.y * 2, d.z * 2) * 0.025 + Math.sin(d.x * 16 + d.y * 7) * Math.sin(d.z * 13 + d.y * 4) * wrinkle;
+    pos.setXYZ(i, d.x * (1 + n), d.y * (1 + n), d.z * (1 + n));
+  }
+  g.computeVertexNormals();
+  paint(g, color, 0.14);
+  const m = tag(new T3.Mesh(g, tissueMat(0xffffff, rough, 0.5)), part);
+  m.material.vertexColors = true;
+  m.position.copy(center); m.scale.copy(scale);
+  return m;
+}
+const atria = new T3.Group(); heart.add(atria);
+const RA = blob(V(-0.82, 0.42, 0.02), V(0.52, 0.6, 0.55), 0x8e3036, 0.45, 0.004, "ra");
+const RAA = blob(V(-0.42, 0.72, 0.5), V(0.32, 0.2, 0.22), 0x8f2f35, 0.5, 0.012, "ra"); RAA.rotation.z = 0.5;
+const LA = blob(V(0.22, 0.52, -0.62), V(0.66, 0.42, 0.45), 0x8a2c33, 0.45, 0.004, "la");
+const LAA = blob(V(0.82, 0.55, 0.12), V(0.3, 0.2, 0.24), 0x923236, 0.55, 0.014, "laa"); LAA.rotation.z = -0.5;
+atria.add(RA, RAA, LA, LAA);
+
+// great vessels
+const artMat = tissueMat(0xb84a50, 0.4, 0.55), artMat2 = tissueMat(0xa63c45, 0.42, 0.55), venMat = tissueMat(0x6b2a3c, 0.42, 0.55), pvMat = tissueMat(0x9a3640, 0.42, 0.5);
+const lumenMat = new T3.MeshStandardMaterial({ color: new T3.Color(0x2a0508).convertSRGBToLinear(), roughness: 0.8 });
+const rimMat = tissueMat(0xc9686e, 0.4, 0.5);
+const vessels = new T3.Group(); heart.add(vessels);
+function vessel(part, pts, r, mat, open = true, rEnd = r) {
+  const curve = new T3.CatmullRomCurve3(pts, false, "centripetal");
+  const segs = 80, radial = 28;
+  const g = new T3.TubeGeometry(curve, segs, 1, radial, false);
+  // taper and organic wobble
+  const pos = g.attributes.position;
+  const frames = curve.computeFrenetFrames(segs, false);
+  for (let s = 0; s <= segs; s++) {
+    const u = s / segs, c = curve.getPointAt(u), rr = r + (rEnd - r) * u;
+    for (let j = 0; j <= radial; j++) {
+      const i = s * (radial + 1) + j;
+      const p = V(pos.getX(i), pos.getY(i), pos.getZ(i)).sub(c);
+      const w = 1 + 0.04 * noise3(c.x * 4 + j * 0.3, c.y * 4, c.z * 4);
+      p.multiplyScalar(rr * w); pos.setXYZ(i, c.x + p.x, c.y + p.y, c.z + p.z);
+    }
+  }
+  g.computeVertexNormals();
+  const m = tag(new T3.Mesh(g, mat), part);
+  vessels.add(m);
+  if (open) {
+    const end = curve.getPointAt(1), tan = curve.getTangentAt(1);
+    const q = new T3.Quaternion().setFromUnitVectors(V(0, 0, 1), tan);
+    const lumen = tag(new T3.Mesh(new T3.CircleGeometry(rEnd * 0.78, 28), lumenMat), part);
+    lumen.position.copy(end).addScaledVector(tan, -0.004); lumen.quaternion.copy(q);
+    const ring = tag(new T3.Mesh(new T3.RingGeometry(rEnd * 0.76, rEnd * 1.0, 32), rimMat), part);
+    ring.position.copy(end).addScaledVector(tan, 0.002); ring.quaternion.copy(q);
+    vessels.add(lumen, ring);
+  }
+  return curve;
+}
+const aorta = vessel("aorta", [V(0.02, 0.45, 0.12), V(0.0, 0.95, 0.22), V(-0.02, 1.38, 0.16), V(0.14, 1.66, -0.04), V(0.45, 1.74, -0.3), V(0.7, 1.5, -0.58), V(0.76, 1.05, -0.74), V(0.72, 0.4, -0.82), V(0.7, -0.25, -0.84)], 0.23, artMat, true, 0.2);
+// arch branches leave from the top of the arch
+[[0.36, [-0.12, 2.25, 0.08], 0.095], [0.45, [0.3, 2.28, -0.12], 0.075], [0.53, [0.64, 2.18, -0.34], 0.08]].forEach(([t, tip, r]) => {
+  const s = aorta.getPointAt(t);
+  const from = s.clone().add(V(0, 0.1, 0));
+  vessel("arch", [from, from.clone().lerp(V(...tip), 0.5).add(V(0, 0.04, 0)), V(...tip)], r, artMat2, true, r * 0.9);
+});
+const trunk = vessel("pa", [V(0.25, 0.3, 0.52), V(0.32, 0.72, 0.62), V(0.38, 1.02, 0.44), V(0.42, 1.16, 0.18)], 0.22, artMat2, false, 0.2);
+vessel("pa", [V(0.42, 1.16, 0.18), V(0.75, 1.2, 0.08), V(1.05, 1.12, -0.12), V(1.22, 1.04, -0.3)], 0.16, artMat2, true, 0.14);   // left PA
+vessel("pa", [V(0.36, 1.14, 0.12), V(0.05, 1.16, -0.22), V(-0.4, 1.12, -0.38), V(-0.72, 1.06, -0.44)], 0.15, artMat2, true, 0.13); // right PA, under the arch
+vessel("svc", [V(-0.78, 0.8, -0.02), V(-0.79, 1.3, -0.04), V(-0.77, 1.95, -0.06)], 0.17, venMat, true, 0.16);
+vessel("ivc", [V(-0.66, 0.15, -0.28), V(-0.62, -0.25, -0.36), V(-0.58, -0.62, -0.4)], 0.18, venMat, true, 0.18);
+[[-0.2, 0.68, -0.85, -0.62, 0.74, -1.02], [-0.2, 0.42, -0.85, -0.62, 0.38, -1.02], [0.66, 0.7, -0.82, 1.08, 0.76, -0.98], [0.66, 0.44, -0.82, 1.08, 0.4, -0.98]].forEach(([a, b, c, d, e, f]) => {
+  vessel("pv", [V(a, b, c), V((a + d) / 2, (b + e) / 2 + 0.02, (c + f) / 2), V(d, e, f)], 0.09, pvMat, true, 0.085);
+});
+
+// floor shadow (the heart floats)
+const shadowTex = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 128;
+  const g = c.getContext("2d"), grd = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+  grd.addColorStop(0, "rgba(0,0,0,0.55)"); grd.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
+  return new T3.CanvasTexture(c);
+})();
+const shadow = new T3.Mesh(new T3.PlaneGeometry(3.2, 2.2), new T3.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
+shadow.rotation.x = -Math.PI / 2; shadow.position.y = -2.55; scene.add(shadow);
+
+// ---------------- selection highlight ----------------
+let sel = null, hover = null, selPoint = null;
+const allMats = new Set(); pickables.forEach((m) => allMats.add(m.material));
+function partOf(mesh, point) {
+  let p = mesh.userData.part;
+  if (p === "ventricles") {
+    const l = ventMesh.worldToLocal(point.clone());
+    const d = l.clone().normalize(), ang = Math.atan2(d.x, d.z);
+    p = ang > -2.75 && ang < 0.28 ? "rv" : "lv";
+  }
+  return p;
+}
+function applyHighlight(pulse) {
+  const glow = new T3.Color(0x7a1e14).multiplyScalar(0.55 + 0.45 * pulse);
+  pickables.forEach((m) => {
+    if (m === ventMesh) return;
+    const on = m.userData.part === sel, hv = m.userData.part === hover && !on;
+    m.material.emissive = m.material.emissive || new T3.Color();
+    m.material.emissive.copy(on ? glow : hv ? new T3.Color(0x2a0d08) : new T3.Color(0));
+  });
+  // ventricle regions through vertex colours
+  const col = ventGeo.attributes.color;
+  for (let i = 0; i < region.length; i++) {
+    const r = region[i], on = r === sel, hv = r === hover && !on;
+    const k = on ? 1.55 + 0.35 * pulse : hv ? 1.18 : 1;
+    col.array[i * 3] = ventBase[i * 3] * k; col.array[i * 3 + 1] = ventBase[i * 3 + 1] * (on ? 1.25 : k); col.array[i * 3 + 2] = ventBase[i * 3 + 2] * (on ? 1.25 : k);
+  }
+  col.needsUpdate = true;
+}
+
+// ---------------- camera & orbit ----------------
+let yaw = 0.35, pitch = 0.12, vYaw = 0, autoSpin = !still.matches, lastInput = -1e9;
+const tagEl = document.getElementById("tag");
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  camDist = Math.max(camDist, 0);
+}
+new ResizeObserver(resize).observe(stage);
+function placeCamera() {
+  const minD = camera.aspect < 0.9 ? 8.6 : 6.2;
+  const d = Math.max(minD * 0.55, Math.min(minD * 1.6, camDist * (camera.aspect < 0.9 ? 1.25 : 1)));
+  camera.position.set(0, 0.25, d); camera.lookAt(0, 0.1, 0);
+}
+
+// ---------------- pointer: drag to orbit, pinch/wheel to zoom, tap to pick ----------------
+const ray = new T3.Raycaster(), ndc = new T3.Vector2();
+function pick(cx, cy) {
+  const r = stage.getBoundingClientRect();
+  ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(pickables, false)[0];
+  return hit ? { part: partOf(hit.object, hit.point), point: heart.worldToLocal(hit.point.clone()) } : null;
+}
+const pointers = new Map(); let drag = null, pinch0 = 0;
+stage.addEventListener("pointerdown", (e) => {
+  stage.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 1) drag = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now(), tl: performance.now(), moved: false };
+  else if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); drag && (drag.moved = true); }
+  vYaw = 0; lastInput = performance.now(); stage.classList.add("grabbing");
+});
+stage.addEventListener("pointermove", (e) => {
+  if (!pointers.has(e.pointerId)) {
+    if (e.pointerType === "mouse") { const h = pick(e.clientX, e.clientY); const p = h ? h.part : null; if (p !== hover) { hover = p; stage.classList.toggle("over-part", !!p); } }
+    return;
+  }
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (pinch0) camDist *= pinch0 / d; pinch0 = d; camDist = Math.max(3.4, Math.min(11, camDist)); return;
+  }
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 6) drag.moved = true;
+  if (!drag.moved) return;
+  const k = 5.2 / stage.clientWidth;
+  yaw += dx * k; pitch = Math.max(-1.1, Math.min(1.25, pitch + dy * k));
+  const now = performance.now(); vYaw = (dx * k) / Math.max(0.008, (now - drag.tl) / 1000);
+  drag.x = e.clientX; drag.y = e.clientY; drag.tl = now; lastInput = now;
+});
+function endPointer(e) {
+  pointers.delete(e.pointerId);
+  if (pointers.size === 0) {
+    stage.classList.remove("grabbing");
+    if (drag && !drag.moved) { const h = pick(e.clientX, e.clientY); select(h ? (h.part === sel ? null : h.part) : null, h && h.point); }
+    if (drag && performance.now() - drag.tl > 90) vYaw = 0;
+    vYaw = Math.max(-6, Math.min(6, vYaw));
+    drag = null; pinch0 = 0; lastInput = performance.now();
+  }
+}
+stage.addEventListener("pointerup", endPointer);
+stage.addEventListener("pointercancel", endPointer);
+stage.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse" && hover) { hover = null; stage.classList.remove("over-part"); } });
+stage.addEventListener("wheel", (e) => { e.preventDefault(); camDist = Math.max(3.4, Math.min(11, camDist * Math.exp(e.deltaY * 0.0012))); lastInput = performance.now(); }, { passive: false });
+stage.addEventListener("keydown", (e) => {
+  const i = sel ? LIST.indexOf(sel) : -1;
+  if (e.key === "ArrowLeft") yaw -= 0.26; else if (e.key === "ArrowRight") yaw += 0.26;
+  else if (e.key === "ArrowUp") pitch = Math.min(1.25, pitch + 0.2); else if (e.key === "ArrowDown") pitch = Math.max(-1.1, pitch - 0.2);
+  else if (e.key === "+" || e.key === "=") camDist = Math.max(3.4, camDist * 0.88); else if (e.key === "-") camDist = Math.min(11, camDist / 0.88);
+  else if (e.key === "Tab" && !e.shiftKey && i < LIST.length - 1) { e.preventDefault(); select(LIST[i + 1]); return; }
+  else if (e.key === "Escape") { select(null); return; }
+  else return;
+  e.preventDefault(); lastInput = performance.now();
+});
+
+// ---------------- selection UI ----------------
+const info = { name: document.getElementById("i-name"), side: document.getElementById("i-side"), fn: document.getElementById("i-fn"), now: document.getElementById("i-now") };
+const hintEl = document.getElementById("hint");
+const chipsEl = document.getElementById("chips");
+LIST.forEach((id) => { const b = document.createElement("button"); b.type = "button"; b.dataset.chip = id; b.textContent = PARTS[id].name; b.setAttribute("aria-pressed", "false"); b.addEventListener("click", () => select(id === sel ? null : id)); chipsEl.appendChild(b); });
+const chips = [...chipsEl.children];
+// default anchor points for chips (heart-local), so the tag has somewhere to point
+const ANCHOR = { ra: V(-1.2, 0.45, 0.3), la: V(0.2, 0.55, -1.05), laa: V(0.98, 0.6, 0.22), rv: V(-0.25, -0.25, 0.8), lv: V(0.85, -0.6, 0.35), aorta: V(-0.02, 1.4, 0.38), arch: V(0.3, 2.1, -0.12), pa: V(0.36, 0.85, 0.82), svc: V(-0.78, 1.75, 0.1), ivc: V(-0.58, -0.55, -0.22), pv: V(1.05, 0.75, -0.9), lad: surf(0.32, -0.2, 0.05).add(VC), rca: surf(-0.6, 0.6, 0.05).add(VC), cx: surf(1.2, 0.62, 0.05).add(VC) };
+function select(id, point) {
+  sel = id; selPoint = id ? (point || ANCHOR[id].clone()) : null;
+  chips.forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.chip === id)));
+  if (!id) {
+    info.name.textContent = "Toca una parte"; info.side.textContent = "Corazón adulto · unos 12 cm de alto y 300 g";
+    info.fn.textContent = "El corazón late unas 100 000 veces al día y mueve cerca de 7 000 litros de sangre. Toca una cavidad, un vaso o una arteria coronaria para ver su nombre, su función y lo que está haciendo en este instante del latido.";
+    info.now.textContent = "—"; hintEl.textContent = "Arrastra · toca una parte"; tagEl.classList.remove("on");
+    return;
+  }
+  const p = PARTS[id];
+  info.name.textContent = p.name; info.side.textContent = p.side; info.fn.textContent = p.fn;
+  tagEl.textContent = p.name; tagEl.classList.add("on");
+  hintEl.textContent = "Toca otra parte o fuera para soltar";
+}
+
+// ---------------- controls ----------------
+const bpmOut = document.getElementById("bpm");
+const setBpm = (v) => { bpm = Math.max(40, Math.min(160, v)); bpmOut.textContent = bpm; };
+document.getElementById("slower").onclick = () => setBpm(bpm - 10);
+document.getElementById("faster").onclick = () => setBpm(bpm + 10);
+const pauseBtn = document.getElementById("pause");
+pauseBtn.onclick = () => { paused = !paused; pauseBtn.setAttribute("aria-pressed", String(paused)); pauseBtn.textContent = paused ? "Reanudar latido" : "Pausar latido"; };
+const spinBtn = document.getElementById("spin");
+const setSpin = (v) => { autoSpin = v; spinBtn.setAttribute("aria-pressed", String(v)); if (!v) vYaw = 0; };
+spinBtn.onclick = () => setSpin(!autoSpin); setSpin(autoSpin);
+document.getElementById("zin").onclick = () => { camDist = Math.max(3.4, camDist * 0.85); };
+document.getElementById("zout").onclick = () => { camDist = Math.min(11, camDist / 0.85); };
+const VIEWS = { front: [0.35, 0.12], right: [0.35 + Math.PI / 2, 0.1], back: [0.35 + Math.PI, 0.12], left: [0.35 - Math.PI / 2, 0.1], top: [0.35, 1.2] };
+let tween = null;
+document.querySelectorAll("[data-view]").forEach((b) => (b.onclick = () => {
+  const [ty, tp] = VIEWS[b.dataset.view];
+  const d = ((ty - yaw) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
+  tween = { y0: yaw, p0: pitch, dy: d, tp, t0: performance.now() }; setSpin(false); vYaw = 0;
+}));
+
+// ---------------- loop ----------------
+const ecgLine = document.getElementById("ecg-line"), ecgDot = document.getElementById("ecg-dot");
+const viewEl = document.getElementById("view"), readout = document.getElementById("readout"), beatEl = document.getElementById("beat"), angleEl = document.getElementById("angle");
+let last = 0, visible = true, running = false;
+const tmp = new T3.Vector3();
+function frame(now) {
+  running = false;
+  const dt = last ? Math.min((now - last) / 1000, 0.05) : 1 / 60; last = now;
+  const calm = still.matches;
+  if (!paused && !calm) beatT += dt;
+  const T = 60 / bpm, ph = (beatT % T) / T, s = state(ph);
+
+  // orbit
+  if (tween) { const u = Math.min(1, (now - tween.t0) / 800), e = 1 - Math.pow(1 - u, 3); yaw = tween.y0 + tween.dy * e; pitch = tween.p0 + (tween.tp - tween.p0) * e; if (u >= 1) tween = null; }
+  else if (!drag) {
+    if (autoSpin && !calm && now - lastInput > 2600) vYaw += (0.28 - vYaw) * (1 - Math.exp(-dt / 1.4));
+    else vYaw *= Math.exp(-dt / 0.5);
+    yaw += vYaw * dt;
+  }
+  heart.rotation.set(pitch, yaw, 0, "XYZ");
+  const bob = calm ? 0 : Math.sin(now / 1000 * 1.05) * 0.06;
+  lift.position.y = bob;
+  shadow.material.opacity = 0.55 - bob * 1.5;
+  shadow.scale.setScalar(1 - bob * 0.6);
+  placeCamera();
+
+  // beat: ventricles squeeze, atria kick
+  const v = 1 - 0.045 * s.vent, a = 1 - 0.06 * s.atrial;
+  ventricles.scale.set(VS * v, VS * (1 - 0.022 * s.vent), VS * v);
+  atria.scale.setScalar(a); atria.position.set(-0.0 * (1 - a), 0.5 * (1 - a), 0);
+  vessels.scale.setScalar(1 + 0.012 * s.slOpen * s.vent);
+  applyHighlight(0.5 + 0.5 * Math.sin(now / 1000 * 4));
+
+  renderer.render(scene, camera);
+
+  // floating name tag follows the picked point
+  if (selPoint) {
+    tmp.copy(selPoint); heart.localToWorld(tmp); tmp.project(camera);
+    const x = (tmp.x * 0.5 + 0.5) * stage.clientWidth, y = (-tmp.y * 0.5 + 0.5) * stage.clientHeight;
+    tagEl.style.transform = "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) translate(-50%,calc(-100% - 18px))";
+  }
+  // readouts
+  const sound = ph > 0.13 && ph < 0.2 ? " · «lub»" : ph > 0.46 && ph < 0.53 ? " · «dub»" : "";
+  const txt = bpm + " lpm · " + s.phase + sound;
+  if (readout.textContent !== txt) readout.textContent = txt;
+  beatEl.style.setProperty("--pulse", (1 + 0.35 * s.vent).toFixed(3));
+  const deg = Math.round((((yaw - 0.35) * 180 / Math.PI) % 360 + 360) % 360);
+  angleEl.textContent = deg + "° · " + Math.round(pitch * 180 / Math.PI) + "°";
+  const vn = pitch > 0.85 ? "Vista superior" : pitch < -0.6 ? "Vista inferior" : deg < 45 || deg >= 315 ? "Vista anterior" : deg < 135 ? "Vista lateral derecha" : deg < 225 ? "Vista posterior" : "Vista lateral izquierda";
+  if (viewEl.textContent !== vn) viewEl.textContent = vn;
+  if (sel) { const n = NOW[sel](s, ph); if (info.now.textContent !== n) info.now.textContent = n; }
+  // ECG strip
+  const cyc = beatT / T; let d = "";
+  for (let i = 0; i <= 150; i++) { const u = i / 150, c = cyc - (1 - u) * 2.5, p = ((c % 1) + 1) % 1; d += (i ? "L" : "M") + (u * 300).toFixed(1) + " " + (56 * 0.62 - ecgAt(p) * 56 * 0.5).toFixed(1); }
+  ecgLine.setAttribute("d", d); ecgDot.setAttribute("cy", (56 * 0.62 - ecgAt(((cyc % 1) + 1) % 1) * 28).toFixed(1));
+
+  if (visible) { running = true; requestAnimationFrame(frame); }
+}
+new IntersectionObserver((en) => { visible = en[en.length - 1].isIntersecting; if (visible && !running) { last = 0; running = true; requestAnimationFrame(frame); } }, { rootMargin: "100px 0px" }).observe(stage);
+resize();
+document.getElementById("loading").remove();
+running = true; requestAnimationFrame(frame);
+window.__heart = { select, pick, setView: (y, p) => { yaw = y; pitch = p; } };
+})();
+</script>
