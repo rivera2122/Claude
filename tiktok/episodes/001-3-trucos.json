@@ -6,12 +6,14 @@
       "kind": "hook",
       "dur": 3.4,
       "chip": "TRUCOS DE CLAUDE",
-      "title": "Estás usando Claude <b>a la mitad</b>"
+      "title": "Estás usando Claude <b>a la mitad</b>",
+      "voice": "¿Estás usando Clod a la mitad?"
     },
     {
       "kind": "intro",
       "dur": 2.6,
-      "title": "<b>3 trucos</b> que casi nadie usa"
+      "title": "<b>3 trucos</b> que casi nadie usa",
+      "voice": "Aquí tienes tres trucos que casi nadie usa."
     },
     {
       "kind": "tip",
@@ -24,7 +26,8 @@
       ],
       "kicker": "Truco 1",
       "title": "<b>Proyectos</b>",
-      "sub": "Sube tus archivos <b>una sola vez</b> y Claude los usa en cada chat del proyecto."
+      "sub": "Sube tus archivos <b>una sola vez</b> y Claude los usa en cada chat del proyecto.",
+      "voice": "Truco uno: Proyectos. Sube tus archivos una sola vez, y Clod los usa en cada chat del proyecto."
     },
     {
       "kind": "tip",
@@ -32,7 +35,8 @@
       "prop": "screen",
       "kicker": "Truco 2",
       "title": "<b>Artifacts</b>",
-      "sub": "Pídele <b>\"hazlo como una app\"</b> y te crea una herramienta que puedes usar y compartir."
+      "sub": "Pídele <b>\"hazlo como una app\"</b> y te crea una herramienta que puedes usar y compartir.",
+      "voice": "Truco dos: Ártifacts. Pídele: hazlo como una app. Y te crea una herramienta que puedes usar y compartir."
     },
     {
       "kind": "tip",
@@ -74,7 +78,8 @@
           "c": "#3f7d5c",
           "b": 1
         }
-      ]
+      ],
+      "voice": "Truco tres: dale un ejemplo. Un ejemplo de lo que quieres, vale más que diez instrucciones."
     },
     {
       "kind": "cta",
@@ -82,7 +87,9 @@
       "chip": "SÍGUEME",
       "title": "Un truco de Claude <b>cada día</b>",
       "sub": "Guárdalo para no olvidarlo",
-      "subTop": 560
+      "subTop": 560,
+      "voice": "Sígueme. Un truco de Clod, cada día."
     }
-  ]
+  ],
+  "voz": "es_MX-claude-high"
 }

@@ -30,6 +30,7 @@ const server = http.createServer((req, res) => {
 });
 
 (async () => {
+  const voiceTrack = await narrate();
   await new Promise(r => server.listen(0, r));
   const port = server.address().port;
   const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
@@ -75,9 +76,62 @@ const server = http.createServer((req, res) => {
   await run('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', `aevalsrc='${pad}+${kick}+${hat}':s=44100:d=${total}`,
     '-af', `lowpass=f=5000,afade=t=in:d=1,afade=t=out:st=${total - 1.5}:d=1.5,volume=1.4`, music]);
   const final = path.join(outDir, `${name}.mp4`);
-  await run('ffmpeg', ['-v', 'error', '-y', '-i', silent, '-i', music, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', final]);
+  if (voiceTrack) {
+    // música baja debajo de la voz
+    await run('ffmpeg', ['-v', 'error', '-y', '-i', silent, '-i', music, '-i', voiceTrack, '-filter_complex',
+      '[1:a]volume=0.28[m];[2:a]aresample=44100,volume=1.6[v];[m][v]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95[a]',
+      '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', final]);
+  } else {
+    await run('ffmpeg', ['-v', 'error', '-y', '-i', silent, '-i', music, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', final]);
+  }
   fs.unlinkSync(silent); fs.unlinkSync(music);
   console.log('listo', final, `(${((Date.now() - t0) / 1000).toFixed(0)}s)`);
 })().catch(e => { console.error(e); process.exit(1); });
 
-function run(cmd, a) { return new Promise((res, rej) => spawn(cmd, a, { stdio: 'inherit' }).on('close', c => c ? rej(new Error(cmd + ' ' + c)) : res())); }
+function run(cmd, a, input) {
+  return new Promise((res, rej) => {
+    const p = spawn(cmd, a, { stdio: [input == null ? 'inherit' : 'pipe', 'inherit', 'inherit'] });
+    if (input != null) { p.stdin.write(input); p.stdin.end(); }
+    p.on('close', c => c ? rej(new Error(cmd + ' ' + c)) : res());
+  });
+}
+
+// ---------- Narración con voz neuronal (Piper) ----------
+// Cada segmento puede tener "voice": texto hablado. El segmento se alarga si la voz lo necesita.
+// Voz: episode.voz (ej. "es_MX-claude-high") o --voz; modelos en tiktok/voices/ (ver engine/setup-voces.sh).
+async function narrate() {
+  const voz = opt('voz', episode.voz || 'es_MX-claude-high');
+  if (args.includes('--sin-voz') || !episode.segments.some(s => s.voice)) return null;
+  const model = path.join(__dirname, '..', 'voices', `${voz}.onnx`);
+  if (!fs.existsSync(model)) { console.error(`Falta la voz ${model}. Corre: bash engine/setup-voces.sh`); process.exit(1); }
+  const tmp = path.join(outDir, `${name}_voz`); fs.mkdirSync(tmp, { recursive: true });
+  const LEAD = 0.25, TAIL = 0.65;
+  let t = 0; const parts = [];
+  for (const [i, seg] of episode.segments.entries()) {
+    if (seg.voice) {
+      const wav = path.join(tmp, `${i}.wav`);
+      await run('python3', ['-m', 'piper', '-m', model, '-f', wav, '--length-scale', String(opt('lento', episode.lento || 0.92))], seg.voice);
+      const len = Number(require('child_process').execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', wav]).toString());
+      seg.dur = Math.max(seg.dur, +(LEAD + len + TAIL).toFixed(2));
+      parts.push({ wav, at: t + LEAD });
+      console.log(`voz seg ${i}: ${len.toFixed(2)}s → dur ${seg.dur}s`);
+    }
+    t += seg.dur;
+  }
+  const total = t, out = path.join(tmp, 'voz.wav');
+  const inputs = parts.flatMap(p => ['-i', p.wav]);
+  const filt = parts.map((p, i) => `[${i}:a]aresample=44100,adelay=${Math.round(p.at * 1000)}:all=1[a${i}]`).join(';') +
+    ';' + parts.map((_, i) => `[a${i}]`).join('') + `amix=inputs=${parts.length}:normalize=0,apad=whole_dur=${total}[o]`;
+  await run('ffmpeg', ['-v', 'error', '-y', ...inputs, '-filter_complex', filt, '-map', '[o]', '-t', String(total), out]);
+  // envolvente por fotograma para mover la boca
+  const raw = require('child_process').execFileSync('ffmpeg', ['-v', 'error', '-i', out, '-ac', '1', '-ar', '16000', '-f', 's16le', '-'], { maxBuffer: 1 << 28 });
+  const per = 16000 / fps, env = [];
+  for (let f = 0; f * per < raw.length / 2; f++) {
+    let sum = 0, n = 0;
+    for (let k = Math.floor(f * per); k < Math.min(raw.length / 2, Math.floor((f + 1) * per)); k++) { const v = raw.readInt16LE(k * 2) / 32768; sum += v * v; n++; }
+    env.push(Math.sqrt(sum / Math.max(1, n)));
+  }
+  const peak = Math.max(...env) || 1;
+  episode.mouth = env.map((v, i) => +Math.min(1, (v / peak) * 1.4).toFixed(3));
+  return out;
+}

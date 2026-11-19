@@ -341,7 +341,11 @@ window.renderFrame = (t) => {
   if (s.kind === 'cta') { // wave
     armR.rotation.z = 2.6 + Math.sin(lt * 9) * .35;
     mouth.scale.x = 1.6;
-  } else mouth.scale.x = 1 + (s.kind === 'intro' ? .4 * Math.abs(Math.sin(lt * 10)) : 0);
+  } else mouth.scale.x = 1 + (!EP.mouth && s.kind === 'intro' ? .4 * Math.abs(Math.sin(lt * 10)) : 0);
+  // lip-sync: envelope of the narration, one value per frame
+  const m = EP.mouth ? (EP.mouth[Math.min(EP.mouth.length - 1, Math.round(t * FPS))] || 0) : 0;
+  mouth.scale.y = 1 + 5 * m; mouth.position.y = -.2 - .06 * m;
+  if (m > .05) mouth.scale.x = Math.max(mouth.scale.x, 1 + .5 * m);
   if (s.kind === 'hook') { // surprised: eyes big
     const z = ease(clamp((lt - 1.2) / .3)); eyeL.scale.set(1 + .3 * z, blink * (1 + .6 * z), 1); eyeR.scale.copy(eyeL.scale);
   } else { eyeL.scale.x = eyeR.scale.x = 1; }
