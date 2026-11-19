@@ -1,0 +1,7 @@
+{
+  "name": "tiktok-claude-3d",
+  "private": true,
+  "type": "commonjs",
+  "scripts": { "render": "node engine/render.js" },
+  "dependencies": { "three": "0.169.0" }
+}

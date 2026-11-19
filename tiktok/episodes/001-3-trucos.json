@@ -1,0 +1,88 @@
+{
+  "title": "3 trucos de Claude que casi nadie usa",
+  "fps": 30,
+  "segments": [
+    {
+      "kind": "hook",
+      "dur": 3.4,
+      "chip": "TRUCOS DE CLAUDE",
+      "title": "Estás usando Claude <b>a la mitad</b>"
+    },
+    {
+      "kind": "intro",
+      "dur": 2.6,
+      "title": "<b>3 trucos</b> que casi nadie usa"
+    },
+    {
+      "kind": "tip",
+      "dur": 7.2,
+      "prop": "docs",
+      "docs": [
+        "PDF",
+        "XLSX",
+        "NOTAS"
+      ],
+      "kicker": "Truco 1",
+      "title": "<b>Proyectos</b>",
+      "sub": "Sube tus archivos <b>una sola vez</b> y Claude los usa en cada chat del proyecto."
+    },
+    {
+      "kind": "tip",
+      "dur": 7.6,
+      "prop": "screen",
+      "kicker": "Truco 2",
+      "title": "<b>Artifacts</b>",
+      "sub": "Pídele <b>\"hazlo como una app\"</b> y te crea una herramienta que puedes usar y compartir."
+    },
+    {
+      "kind": "tip",
+      "dur": 7.6,
+      "prop": "prompt",
+      "kicker": "Truco 3",
+      "title": "Dale un <b>ejemplo</b>",
+      "sub": "Un ejemplo de lo que quieres vale más que <b>10 instrucciones</b>.",
+      "lines": [
+        {
+          "t": "Escribe 5 captions para",
+          "b": 1
+        },
+        {
+          "t": "mi cafetería con este",
+          "b": 1
+        },
+        {
+          "t": "estilo:",
+          "b": 1
+        },
+        {
+          "t": ""
+        },
+        {
+          "t": "\"Lunes sin café =",
+          "c": "#b4502a",
+          "box": 2
+        },
+        {
+          "t": "lunes en modo avión\"",
+          "c": "#b4502a"
+        },
+        {
+          "t": ""
+        },
+        {
+          "t": "→ Claude copia tu tono",
+          "c": "#3f7d5c",
+          "b": 1
+        }
+      ]
+    },
+    {
+      "kind": "cta",
+      "dur": 4.2,
+      "chip": "SÍGUEME",
+      "title": "Un truco de Claude <b>cada día</b>",
+      "sub": "Guárdalo para no olvidarlo",
+      "subTop": 560
+    }
+  ]
+}
