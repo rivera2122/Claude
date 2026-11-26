@@ -1,0 +1,905 @@
+<title>Cuerpo humano 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a tall specimen stage with the body on a turntable, layer switches beside it; below, the info card and the parts index grouped by system. */
+:root{
+  --bg:#eef0f3; --card:#ffffff; --ink:#15171c; --text:#3d4149; --muted:#767c87; --line:#dde1e7;
+  --accent:#b3202c; --focus:#3c5fc9;
+  --sys-skin:#c98d6b; --sys-bone:#a8946c; --sys-organ:#b4475a; --sys-blood:#c62f3a; --sys-nerve:#c9a227;
+  --stage:radial-gradient(110% 80% at 50% 30%,#ffffff 0%,#e7eaef 75%);
+  --font:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --shadow:0 1px 0 #ffffff inset,0 0 0 1px #0000000d,0 8px 24px -12px #0000002e;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d0e11; --card:#15171c; --ink:#f1f2f4; --text:#c3c7cf; --muted:#80868f; --line:#262a31;
+  --accent:#ff5a63; --focus:#7c9cff;
+  --sys-skin:#e0a787; --sys-bone:#d6c39a; --sys-organ:#e07a8c; --sys-blood:#ff6b72; --sys-nerve:#f0c84a;
+  --stage:radial-gradient(110% 80% at 50% 30%,#1e2127 0%,#0d0e11 75%);
+  --shadow:0 1px 0 #ffffff0a inset,0 0 0 1px #ffffff0d,0 8px 24px -12px #000000aa;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d0e11; --card:#15171c; --ink:#f1f2f4; --text:#c3c7cf; --muted:#80868f; --line:#262a31;
+  --accent:#ff5a63; --focus:#7c9cff;
+  --sys-skin:#e0a787; --sys-bone:#d6c39a; --sys-organ:#e07a8c; --sys-blood:#ff6b72; --sys-nerve:#f0c84a;
+  --stage:radial-gradient(110% 80% at 50% 30%,#1e2127 0%,#0d0e11 75%);
+  --shadow:0 1px 0 #ffffff0a inset,0 0 0 1px #ffffff0d,0 8px 24px -12px #000000aa;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font:15px/1.6 var(--font);-webkit-font-smoothing:antialiased}
+.page{max-width:1180px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:6px 24px}
+.eyebrow{font:500 11px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+h1{margin:2px 0 0;font:600 clamp(28px,4.4vw,40px)/1.05 var(--font);color:var(--ink);letter-spacing:-.015em}
+.lede{margin:0;color:var(--muted);font-size:14px;max-width:52ch}
+.top{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+@media (max-width:860px){.top{grid-template-columns:1fr}}
+.stage{position:relative;border-radius:18px;background:var(--stage);box-shadow:var(--shadow);overflow:hidden;height:min(82vh,780px);min-height:460px;max-width:100%;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+@media (max-width:640px){.stage{height:72vh;min-height:420px}}
+.stage.grabbing{cursor:grabbing}.stage.over-part{cursor:pointer}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.corner{position:absolute;font:500 11px/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);pointer-events:none;max-width:calc(50% - 20px)}
+.corner.tl{top:14px;left:16px}.corner.tr{top:14px;right:16px;text-align:right}
+.corner.bl{bottom:14px;left:16px}.corner.br{bottom:14px;right:16px;text-align:right;color:var(--ink)}
+@media (max-width:640px){.corner.bl{bottom:36px;max-width:calc(100% - 32px)}.corner.tr{display:none}.corner.tl{max-width:calc(100% - 32px)}}
+.tag{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap;font:600 13px/1 var(--font);color:var(--ink);background:var(--card);padding:8px 11px;border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .2s}
+.tag::after{content:"";position:absolute;left:50%;bottom:-11px;width:1px;height:10px;background:var(--ink);opacity:.5}
+.tag::before{content:"";position:absolute;left:calc(50% - 3px);bottom:-17px;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
+.tag.on{opacity:1}
+.loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font:500 12px var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase;background:var(--stage);z-index:2}
+.bar{width:min(260px,60%);height:3px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+.panel{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:16px 18px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.panel h3{margin:0;font:500 11px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.layers{display:flex;flex-direction:column;gap:6px}
+.layer{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:transparent;cursor:pointer;font:500 13px/1.2 var(--font);color:var(--text);text-align:left;width:100%}
+.layer .dot{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none;opacity:.35}
+.layer .n{margin-left:auto;font:12px var(--mono);color:var(--muted)}
+.layer[aria-pressed="true"]{border-color:color-mix(in srgb,var(--c) 55%,var(--line));background:color-mix(in srgb,var(--c) 10%,transparent);color:var(--ink)}
+.layer[aria-pressed="true"] .dot{opacity:1}
+.slider{display:flex;flex-direction:column;gap:6px;font:12px var(--mono);color:var(--muted)}
+.slider .lab{display:flex;justify-content:space-between}
+.slider output{color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+button.pill{font:500 12px/1 var(--mono);color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:8px 11px;cursor:pointer}
+button.pill:hover,.layer:hover{color:var(--ink);border-color:var(--muted)}
+button.pill[aria-pressed="true"]{color:var(--card);background:var(--ink);border-color:var(--ink)}
+button:focus-visible,.stage:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px;min-width:0}
+.badge{display:inline-flex;align-items:center;gap:6px;font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--c);}
+.badge::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.card h2{margin:6px 0 8px;font:600 26px/1.15 var(--font);color:var(--ink);text-wrap:balance}
+.card p{margin:0 0 12px;max-width:64ch}
+.fact{border-top:1px solid var(--line);padding-top:10px;font-size:14px;color:var(--muted)}
+.fact b{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:8px}
+.now{font:12px/1.5 var(--mono);color:var(--ink);margin-top:8px;min-height:1.5em}
+.cardbtns{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.index{display:flex;flex-direction:column;gap:12px}
+.group h4{margin:0 0 6px;font:500 11px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--c)}
+.group .row button{font-size:12px}
+.note{font-size:12px;color:var(--muted);margin:0}
+</style>
+
+<div class="page">
+  <header>
+    <div>
+      <div class="eyebrow">Anatomía · modelo 3D interactivo</div>
+      <h1>Cuerpo humano</h1>
+    </div>
+    <p class="lede">Gira el cuerpo, acércate y toca cualquier hueso, órgano, vaso o nervio para saber cómo se llama y qué hace. Apaga capas o vuelve la piel transparente para ver por dentro.</p>
+  </header>
+
+  <div class="top">
+    <div class="stage" id="stage" tabindex="0" aria-label="Cuerpo humano en 3D. Arrastra para girar, rueda o pellizco para acercar, arrastre con dos dedos o con Mayúsculas para subir y bajar. Flechas para girar, Tab para recorrer las partes, Escape para soltar.">
+      <div class="loading" id="loading"><span id="load-text">Construyendo el modelo…</span><div class="bar"><i id="load-bar"></i></div></div>
+      <div class="corner tl" id="view">Vista anterior</div>
+      <div class="corner tr" id="angle">0°</div>
+      <div class="corner bl" id="hint">Arrastra · toca una parte</div>
+      <div class="corner br" id="readout">72 lpm · 14 resp/min</div>
+      <div class="tag" id="tag"></div>
+    </div>
+
+    <aside class="panel" aria-label="Capas y vista">
+      <h3>Capas</h3>
+      <div class="layers" id="layers"></div>
+      <div class="slider"><div class="lab"><label for="skin-op">Opacidad de la piel</label><output id="skin-out">25 %</output></div><input type="range" id="skin-op" min="0" max="100" value="25"></div>
+      <h3>Zona</h3>
+      <div class="row" id="zones"></div>
+      <h3>Vista</h3>
+      <div class="row">
+        <button class="pill" type="button" data-view="front">Frente</button>
+        <button class="pill" type="button" data-view="side">Perfil</button>
+        <button class="pill" type="button" data-view="back">Espalda</button>
+        <button class="pill" type="button" id="spin" aria-pressed="true">Giro auto</button>
+      </div>
+    </aside>
+  </div>
+
+  <div class="grid">
+    <section class="card" aria-live="polite" id="card" style="--c:var(--sys-skin)">
+      <span class="badge" id="i-sys">Cuerpo humano</span>
+      <h2 id="i-name">Toca una parte</h2>
+      <p id="i-fn">Un adulto tiene 206 huesos, unos 78 órganos y cerca de 100 000 km de vasos sanguíneos. Toca cualquier estructura del modelo, o elígela en el índice, para ver su nombre y su función.</p>
+      <div class="fact" id="i-fact-wrap"><b>Dato</b><span id="i-fact">La piel es el órgano más grande: unos 2 m² y 4 kg.</span></div>
+      <div class="now" id="i-now"></div>
+      <div class="cardbtns"><button class="pill" type="button" id="focus-btn" disabled>Enfocar esta parte</button><button class="pill" type="button" id="isolate-btn" aria-pressed="false" disabled>Aislar</button></div>
+    </section>
+    <section class="card">
+      <div class="index" id="index"></div>
+      <p class="note" style="margin-top:14px">Modelo generado por código con proporciones aproximadas de un adulto de 1,75 m; es una simplificación didáctica, no un atlas médico. En la vista de frente, el lado derecho del cuerpo queda a la izquierda de la pantalla.</p>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+"use strict";
+const stage = document.getElementById("stage");
+const loadText = document.getElementById("load-text"), loadBar = document.getElementById("load-bar");
+if (!window.THREE) { loadText.textContent = "No se pudo cargar el motor 3D"; return; }
+const T3 = THREE;
+const still = matchMedia("(prefers-reduced-motion: reduce)");
+
+// =====================================================================
+// Systems and the parts catalogue
+// =====================================================================
+const SYS = {
+  skin: { name: "Piel", label: "Sistema tegumentario", css: "--sys-skin" },
+  bone: { name: "Esqueleto", label: "Sistema esquelético", css: "--sys-bone" },
+  organ: { name: "Órganos", label: "Órganos internos", css: "--sys-organ" },
+  blood: { name: "Circulación", label: "Sistema circulatorio", css: "--sys-blood" },
+  nerve: { name: "Nervios", label: "Sistema nervioso", css: "--sys-nerve" },
+};
+const P = {
+  skin: { sys: "skin", name: "Piel", fn: "Cubre y protege todo el cuerpo: frena microbios, agua y radiación ultravioleta, regula la temperatura con el sudor y el flujo de sangre, y aloja millones de receptores de tacto, presión, dolor y temperatura.", fact: "Es el órgano más grande: unos 2 m² y 4 kg. Se renueva por completo cada 4 semanas aproximadamente." },
+  skull: { sys: "bone", name: "Cráneo", fn: "Caja de 22 huesos que protege el encéfalo y forma la cara. Aloja los ojos, el oído interno y las vías respiratorias superiores; la mandíbula es su único hueso móvil.", fact: "En el modelo se ha retirado la bóveda craneal para dejar ver el cerebro." },
+  spine: { sys: "bone", name: "Columna vertebral", fn: "Eje del cuerpo: 24 vértebras móviles (7 cervicales, 12 torácicas, 5 lumbares) más el sacro y el cóccix. Sostiene el tronco, permite doblarse y girar, y protege la médula espinal en su canal.", fact: "Sus curvas en S funcionan como un muelle que amortigua cada paso." },
+  ribs: { sys: "bone", name: "Costillas", fn: "Doce pares de huesos curvos que forman la caja torácica y protegen corazón y pulmones. Se elevan con cada inspiración para ampliar el tórax.", fact: "Los pares 11 y 12 son «flotantes»: no llegan al esternón." },
+  sternum: { sys: "bone", name: "Esternón", fn: "Hueso plano en el centro del pecho donde se unen las costillas por delante mediante cartílago. Protege el corazón.", fact: "En la reanimación cardiopulmonar se comprime unos 5 cm sobre su mitad inferior." },
+  clavicle: { sys: "bone", name: "Clavículas", fn: "Unen el esternón con el hombro y mantienen el brazo separado del tronco para que pueda moverse con libertad.", fact: "Es uno de los huesos que más se fracturan, sobre todo en caídas sobre la mano." },
+  scapula: { sys: "bone", name: "Escápulas", fn: "Omóplatos: huesos triangulares en la espalda que forman la cavidad del hombro y anclan 17 músculos que mueven el brazo.", fact: "No están unidas a la columna: «flotan» sujetas solo por músculos." },
+  humerus: { sys: "bone", name: "Húmero", fn: "Hueso del brazo. Su cabeza redonda encaja en la escápula formando el hombro, la articulación con más movilidad del cuerpo.", fact: "El «hueso de la risa» es en realidad el nervio cubital pasando junto a su extremo." },
+  forearm: { sys: "bone", name: "Radio y cúbito", fn: "Los dos huesos del antebrazo. El radio gira alrededor del cúbito para poner la palma hacia arriba o hacia abajo.", fact: "La fractura de muñeca más común es la del extremo del radio." },
+  hand: { sys: "bone", name: "Huesos de la mano", fn: "27 huesos: 8 del carpo en la muñeca, 5 metacarpianos en la palma y 14 falanges en los dedos. Permiten agarrar con fuerza y con precisión.", fact: "Entre manos y pies suman más de la mitad de los huesos del cuerpo." },
+  pelvis: { sys: "bone", name: "Pelvis", fn: "Anillo óseo que une la columna con las piernas, reparte el peso del tronco al caminar y protege la vejiga, el recto y los órganos reproductores.", fact: "La pelvis femenina es más ancha y abierta para permitir el parto." },
+  femur: { sys: "bone", name: "Fémur", fn: "Hueso del muslo: el más largo y fuerte del cuerpo. Su cabeza forma la cadera con la pelvis y su extremo inferior, la rodilla.", fact: "Mide cerca de una cuarta parte de la estatura y soporta varias veces el peso corporal al correr." },
+  patella: { sys: "bone", name: "Rótula", fn: "Hueso pequeño dentro del tendón del cuádriceps que protege la rodilla y actúa como polea para extender la pierna con menos esfuerzo.", fact: "Es el sesamoideo más grande: un hueso que crece dentro de un tendón." },
+  tibia: { sys: "bone", name: "Tibia y peroné", fn: "Huesos de la pierna. La tibia, gruesa y delantera, carga casi todo el peso; el peroné, delgado y lateral, estabiliza el tobillo y ancla músculos.", fact: "El borde de la tibia se nota justo bajo la piel de la espinilla." },
+  foot: { sys: "bone", name: "Huesos del pie", fn: "26 huesos organizados en arcos que reparten el peso, absorben impactos y funcionan como palanca para impulsar cada paso.", fact: "El calcáneo, en el talón, es el hueso más grande del pie." },
+  brain: { sys: "nerve", name: "Cerebro", fn: "Centro de control: interpreta los sentidos, ordena los movimientos, guarda la memoria y genera el pensamiento, el lenguaje y las emociones. Sus pliegues aumentan la superficie de la corteza.", fact: "Pesa unos 1,4 kg (el 2 % del cuerpo) pero consume cerca del 20 % de la energía." },
+  cerebellum: { sys: "nerve", name: "Cerebelo y tronco encefálico", fn: "El cerebelo coordina los movimientos, el equilibrio y la postura. El tronco encefálico conecta con la médula y controla funciones automáticas: respiración, ritmo cardíaco y presión.", fact: "El cerebelo contiene más de la mitad de las neuronas del encéfalo." },
+  eyes: { sys: "organ", name: "Ojos", fn: "Captan la luz y la enfocan sobre la retina, que la convierte en señales que el nervio óptico lleva al cerebro.", fact: "La retina tiene unos 120 millones de bastones y 6 millones de conos." },
+  trachea: { sys: "organ", name: "Tráquea y bronquios", fn: "Conducto reforzado con anillos de cartílago que lleva el aire de la laringe a los pulmones, donde se divide en los bronquios.", fact: "Sus células tienen cilios que barren el moco y el polvo hacia arriba." },
+  lungs: { sys: "organ", name: "Pulmones", fn: "Intercambian gases: llevan oxígeno a la sangre y retiran el dióxido de carbono a través de unos 480 millones de alvéolos.", fact: "Extendidos, los alvéolos ocuparían unos 70 m², casi media pista de tenis. El izquierdo es más pequeño para dejar sitio al corazón." },
+  heart: { sys: "blood", name: "Corazón", fn: "Bomba muscular de cuatro cavidades: el lado derecho envía la sangre a los pulmones y el izquierdo al resto del cuerpo.", fact: "Late unas 100 000 veces al día y bombea cerca de 7 000 litros de sangre." },
+  esophagus: { sys: "organ", name: "Esófago", fn: "Tubo muscular de unos 25 cm que lleva el bolo alimenticio de la garganta al estómago mediante ondas de contracción (peristaltismo).", fact: "Funciona incluso cabeza abajo: el alimento no baja por gravedad." },
+  liver: { sys: "organ", name: "Hígado", fn: "Filtra la sangre que viene del intestino, elimina tóxicos, fabrica bilis y proteínas como la albúmina y los factores de coagulación, y almacena glucosa y vitaminas.", fact: "Es el órgano interno más grande (1,5 kg) y puede regenerarse aunque se pierda más de la mitad." },
+  gallbladder: { sys: "organ", name: "Vesícula biliar", fn: "Bolsa bajo el hígado que almacena y concentra la bilis y la libera al intestino para digerir las grasas.", fact: "Se puede vivir sin ella: la bilis pasa entonces directamente del hígado al intestino." },
+  stomach: { sys: "organ", name: "Estómago", fn: "Mezcla los alimentos con ácido clorhídrico y enzimas para empezar a digerir las proteínas, y los pasa poco a poco al intestino.", fact: "Su ácido es tan fuerte que el revestimiento se renueva cada pocos días para no dañarse." },
+  spleen: { sys: "organ", name: "Bazo", fn: "Filtra la sangre, retira los glóbulos rojos viejos y alberga glóbulos blancos que combaten infecciones.", fact: "Está protegido por las costillas inferiores izquierdas; se puede extirpar si se rompe." },
+  pancreas: { sys: "organ", name: "Páncreas", fn: "Glándula doble: vierte al intestino enzimas que digieren grasas, proteínas y azúcares, y libera insulina y glucagón para regular la glucosa en sangre.", fact: "Sus islotes de Langerhans son solo el 1–2 % del órgano pero controlan el azúcar de todo el cuerpo." },
+  kidneys: { sys: "organ", name: "Riñones", fn: "Filtran la sangre para producir orina, equilibran agua y sales, regulan la presión arterial y estimulan la producción de glóbulos rojos.", fact: "Filtran unos 180 litros de sangre al día; solo 1,5 litros acaban como orina." },
+  adrenal: { sys: "organ", name: "Glándulas suprarrenales", fn: "Sobre cada riñón: producen adrenalina para la respuesta de alerta, cortisol para el estrés y la glucosa, y aldosterona para la presión.", fact: "Pesan apenas unos 5 gramos cada una." },
+  smallint: { sys: "organ", name: "Intestino delgado", fn: "Completa la digestión y absorbe la mayoría de los nutrientes a través de millones de vellosidades. Tiene tres tramos: duodeno, yeyuno e íleon.", fact: "Mide de 6 a 7 metros enrollado dentro del abdomen." },
+  largeint: { sys: "organ", name: "Intestino grueso", fn: "Absorbe el agua y las sales que quedan, aloja billones de bacterias útiles y forma y almacena las heces hasta expulsarlas.", fact: "Mide 1,5 m y enmarca al intestino delgado: sube por la derecha, cruza y baja por la izquierda." },
+  bladder: { sys: "organ", name: "Vejiga", fn: "Bolsa muscular elástica que almacena la orina que llega de los riñones y la expulsa al contraerse.", fact: "Sentimos ganas de orinar hacia los 200–300 ml; cabe más de medio litro." },
+  aorta: { sys: "blood", name: "Aorta", fn: "La arteria más grande: sale del corazón, forma un arco y baja por delante de la columna repartiendo sangre oxigenada a todo el cuerpo, hasta dividirse en las ilíacas.", fact: "Tiene unos 2,5 cm de diámetro; su pared elástica suaviza cada latido." },
+  arteries: { sys: "blood", name: "Arterias principales", fn: "Llevan sangre oxigenada desde la aorta: las carótidas a la cabeza, las subclavias y braquiales a los brazos, y las ilíacas y femorales a las piernas.", fact: "El pulso que se toma en la muñeca o el cuello es la onda de presión en estas arterias." },
+  veins: { sys: "blood", name: "Venas principales", fn: "Devuelven la sangre al corazón: las yugulares desde la cabeza, las cavas superior e inferior al corazón y las femorales desde las piernas. Tienen válvulas que impiden el reflujo.", fact: "En reposo, cerca del 70 % de la sangre está en las venas." },
+  cord: { sys: "nerve", name: "Médula espinal", fn: "Cable nervioso que baja por el canal de la columna y comunica el cerebro con el cuerpo. También resuelve reflejos sin pasar por el cerebro.", fact: "Mide unos 45 cm y termina hacia la primera vértebra lumbar." },
+  nerves: { sys: "nerve", name: "Nervios periféricos", fn: "Llevan órdenes a los músculos y traen sensaciones a la médula: el plexo braquial y sus ramas inervan los brazos; el nervio ciático, las piernas.", fact: "El ciático es el nervio más largo y grueso: casi tan ancho como un dedo." },
+};
+const INDEX = {
+  skin: ["skin"],
+  bone: ["skull", "spine", "ribs", "sternum", "clavicle", "scapula", "humerus", "forearm", "hand", "pelvis", "femur", "patella", "tibia", "foot"],
+  organ: ["eyes", "trachea", "lungs", "esophagus", "liver", "gallbladder", "stomach", "spleen", "pancreas", "kidneys", "adrenal", "smallint", "largeint", "bladder"],
+  blood: ["heart", "aorta", "arteries", "veins"],
+  nerve: ["brain", "cerebellum", "cord", "nerves"],
+};
+const ORDER = [].concat(INDEX.skin, INDEX.bone, INDEX.organ, INDEX.blood, INDEX.nerve);
+
+// =====================================================================
+// Signed distance fields → meshes (naive surface nets)
+// =====================================================================
+const sq = (x) => x * x;
+function smin(a, b, k) { if (k <= 0) return Math.min(a, b); const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; }
+function rotM(ax, ay, az) {
+  const cx = Math.cos(ax), sx = Math.sin(ax), cy = Math.cos(ay), sy = Math.sin(ay), cz = Math.cos(az), sz = Math.sin(az);
+  // R = Rz * Ry * Rx ; we need inverse (transpose) to bring p into local
+  const m = [cz * cy, cz * sy * sx - sz * cx, cz * sy * cx + sz * sx, sz * cy, sz * sy * sx + cz * cx, sz * sy * cx - cz * sx, -sy, cy * sx, cy * cx];
+  return [m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]];
+}
+// primitives
+const cone = (a, b, r1, r2 = r1) => ({ t: 0, a, b, r1, r2 });
+const ell = (c, r, rot) => ({ t: 1, c, r, m: rot ? rotM(rot[0] || 0, rot[1] || 0, rot[2] || 0) : null });
+const ball = (c, r) => ({ t: 2, c, r });
+function sdRoundCone(px, py, pz, a, b, r1, r2) {
+  const bax = b[0] - a[0], bay = b[1] - a[1], baz = b[2] - a[2];
+  const l2 = bax * bax + bay * bay + baz * baz, rr = r1 - r2, a2 = l2 - rr * rr, il2 = 1 / l2;
+  const pax = px - a[0], pay = py - a[1], paz = pz - a[2];
+  const y = pax * bax + pay * bay + paz * baz, z = y - l2;
+  const xx = pax * l2 - bax * y, xy = pay * l2 - bay * y, xz = paz * l2 - baz * y;
+  const x2 = xx * xx + xy * xy + xz * xz, y2 = y * y * l2, z2 = z * z * l2;
+  const k = Math.sign(rr) * rr * rr * x2;
+  if (Math.sign(z) * a2 * z2 > k) return Math.sqrt(x2 + z2) * il2 - r2;
+  if (Math.sign(y) * a2 * y2 < k) return Math.sqrt(x2 + y2) * il2 - r1;
+  return (Math.sqrt(x2 * a2 * il2) + y * rr) * il2 - r1;
+}
+function sdPrim(q, x, y, z) {
+  if (q.t === 0) return sdRoundCone(x, y, z, q.a, q.b, q.r1, q.r2);
+  if (q.t === 2) return Math.hypot(x - q.c[0], y - q.c[1], z - q.c[2]) - q.r;
+  let dx = x - q.c[0], dy = y - q.c[1], dz = z - q.c[2];
+  if (q.m) { const m = q.m; const ax = m[0] * dx + m[1] * dy + m[2] * dz, ay = m[3] * dx + m[4] * dy + m[5] * dz, az = m[6] * dx + m[7] * dy + m[8] * dz; dx = ax; dy = ay; dz = az; }
+  const k0 = Math.hypot(dx / q.r[0], dy / q.r[1], dz / q.r[2]);
+  const k1 = Math.hypot(dx / (q.r[0] * q.r[0]), dy / (q.r[1] * q.r[1]), dz / (q.r[2] * q.r[2]));
+  return k1 > 1e-9 ? (k0 * (k0 - 1)) / k1 : -Math.min(q.r[0], q.r[1], q.r[2]);
+}
+function primBox(q) {
+  if (q.t === 0) { const r = Math.max(q.r1, q.r2); return [Math.min(q.a[0], q.b[0]) - r, Math.min(q.a[1], q.b[1]) - r, Math.min(q.a[2], q.b[2]) - r, Math.max(q.a[0], q.b[0]) + r, Math.max(q.a[1], q.b[1]) + r, Math.max(q.a[2], q.b[2]) + r]; }
+  const r = q.t === 2 ? q.r : Math.max(q.r[0], q.r[1], q.r[2]);
+  return [q.c[0] - r, q.c[1] - r, q.c[2] - r, q.c[0] + r, q.c[1] + r, q.c[2] + r];
+}
+// a shape: union (smooth k) of prims, minus cuts, plus optional detail function
+function shape(prims, opt = {}) { prims.forEach((q) => (q.box = primBox(q))); (opt.cuts || []).forEach((q) => (q.box = primBox(q))); return { prims, k: opt.k == null ? 0.01 : opt.k, cuts: opt.cuts || [], detail: opt.detail || null, clip: opt.clip || null }; }
+function boxDist(b, x, y, z) { const dx = Math.max(b[0] - x, 0, x - b[3]), dy = Math.max(b[1] - y, 0, y - b[4]), dz = Math.max(b[2] - z, 0, z - b[5]); return Math.sqrt(dx * dx + dy * dy + dz * dz); }
+function evalShape(s, x, y, z) {
+  let d = 1e9;
+  for (let i = 0; i < s.prims.length; i++) { const q = s.prims[i]; if (boxDist(q.box, x, y, z) > d + s.k) continue; d = smin(d, sdPrim(q, x, y, z), s.k); }
+  if (d > 0.05) return d;
+  for (let i = 0; i < s.cuts.length; i++) { const q = s.cuts[i]; if (boxDist(q.box, x, y, z) > 0) continue; d = Math.max(d, -sdPrim(q, x, y, z)); }
+  if (s.clip) d = Math.max(d, s.clip(x, y, z));
+  if (s.detail) d += s.detail(x, y, z);
+  return d;
+}
+function boundsOf(s, pad) {
+  const b = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9];
+  s.prims.forEach((q) => { const p = primBox(q); for (let i = 0; i < 3; i++) { b[i] = Math.min(b[i], p[i]); b[i + 3] = Math.max(b[i + 3], p[i + 3]); } });
+  for (let i = 0; i < 3; i++) { b[i] -= pad; b[i + 3] += pad; }
+  return b;
+}
+// mirror helper (x → −x)
+const mx = (p) => [-p[0], p[1], p[2]];
+function mirrorPrim(q) {
+  if (q.t === 0) return cone(mx(q.a), mx(q.b), q.r1, q.r2);
+  if (q.t === 2) return ball(mx(q.c), q.r);
+  const o = { t: 1, c: mx(q.c), r: q.r, m: null };
+  if (q.m) { const m = q.m; o.m = [m[0], -m[1], -m[2], -m[3], m[4], m[5], -m[6], m[7], m[8]]; }
+  return o;
+}
+const both = (list) => list.concat(list.map(mirrorPrim));
+
+function surfaceNet(s, h) {
+  const pad = Math.max(s.k, 0.004) + h * 2;
+  const b = boundsOf(s, pad);
+  const nx = Math.ceil((b[3] - b[0]) / h) + 1, ny = Math.ceil((b[4] - b[1]) / h) + 1, nz = Math.ceil((b[5] - b[2]) / h) + 1;
+  const F = new Float32Array(nx * ny * nz);
+  for (let k = 0; k < nz; k++) { const z = b[2] + k * h; for (let j = 0; j < ny; j++) { const y = b[1] + j * h; let o = nx * (j + ny * k); for (let i = 0; i < nx; i++) F[o++] = evalShape(s, b[0] + i * h, y, z); } }
+  const VI = new Int32Array(nx * ny * nz).fill(-1);
+  const pos = [];
+  const cx = [0, 1, 0, 1, 0, 1, 0, 1], cy = [0, 0, 1, 1, 0, 0, 1, 1], cz = [0, 0, 0, 0, 1, 1, 1, 1];
+  const E = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
+  const v = new Float32Array(8);
+  for (let k = 0; k < nz - 1; k++) for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    let mask = 0;
+    for (let c = 0; c < 8; c++) { v[c] = F[(i + cx[c]) + nx * ((j + cy[c]) + ny * (k + cz[c]))]; if (v[c] < 0) mask |= 1 << c; }
+    if (mask === 0 || mask === 255) continue;
+    let sx = 0, sy = 0, sz = 0, n = 0;
+    for (let e = 0; e < 12; e++) {
+      const a = E[e][0], c2 = E[e][1];
+      if ((v[a] < 0) === (v[c2] < 0)) continue;
+      const t = v[a] / (v[a] - v[c2]);
+      sx += cx[a] + (cx[c2] - cx[a]) * t; sy += cy[a] + (cy[c2] - cy[a]) * t; sz += cz[a] + (cz[c2] - cz[a]) * t; n++;
+    }
+    VI[i + nx * (j + ny * k)] = pos.length / 3;
+    pos.push(b[0] + (i + sx / n) * h, b[1] + (j + sy / n) * h, b[2] + (k + sz / n) * h);
+  }
+  const idx = [];
+  const C = (i, j, k) => VI[i + nx * (j + ny * k)];
+  const quad = (a, b2, c, d, flip) => { if (a < 0 || b2 < 0 || c < 0 || d < 0) return; if (flip) idx.push(a, d, c, a, c, b2); else idx.push(a, b2, c, a, c, d); };
+  for (let k = 0; k < nz - 1; k++) for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const f0 = F[i + nx * (j + ny * k)] < 0;
+    if (j > 0 && k > 0 && f0 !== (F[(i + 1) + nx * (j + ny * k)] < 0)) quad(C(i, j, k), C(i, j - 1, k), C(i, j - 1, k - 1), C(i, j, k - 1), !f0);
+    if (i > 0 && k > 0 && f0 !== (F[i + nx * ((j + 1) + ny * k)] < 0)) quad(C(i, j, k), C(i, j, k - 1), C(i - 1, j, k - 1), C(i - 1, j, k), !f0);
+    if (i > 0 && j > 0 && f0 !== (F[i + nx * (j + ny * (k + 1))] < 0)) quad(C(i, j, k), C(i - 1, j, k), C(i - 1, j - 1, k), C(i, j - 1, k), !f0);
+  }
+  // normals from the field gradient: smooth and seam-free
+  const nrm = new Float32Array(pos.length), e = h * 0.5;
+  for (let p = 0; p < pos.length; p += 3) {
+    const x = pos[p], y = pos[p + 1], z = pos[p + 2];
+    let gx = evalShape(s, x + e, y, z) - evalShape(s, x - e, y, z);
+    let gy = evalShape(s, x, y + e, z) - evalShape(s, x, y - e, z);
+    let gz = evalShape(s, x, y, z + e) - evalShape(s, x, y, z - e);
+    const l = Math.hypot(gx, gy, gz) || 1; nrm[p] = gx / l; nrm[p + 1] = gy / l; nrm[p + 2] = gz / l;
+  }
+  const g = new T3.BufferGeometry();
+  g.setAttribute("position", new T3.Float32BufferAttribute(pos, 3));
+  g.setAttribute("normal", new T3.BufferAttribute(nrm, 3));
+  g.setIndex(idx);
+  g.computeBoundingSphere();
+  return g;
+}
+
+// =====================================================================
+// The body plan (metres; feet at y = 0, facing +z, body's left at +x)
+// =====================================================================
+const L = 1, R = -1;
+const noise = (x, y, z) => (Math.sin(x * 61 + y * 17) * Math.cos(z * 53 - x * 29) + Math.sin(y * 71 + z * 37) * 0.6) / 1.6;
+
+const SKIN = shape([
+  // head and face
+  ell([0, 1.628, 0.0], [0.074, 0.1, 0.093]), ell([0, 1.565, 0.03], [0.056, 0.05, 0.066]), ell([0, 1.6, 0.093], [0.011, 0.022, 0.018], [-0.3, 0, 0]),
+  ell([0.071, 1.615, -0.005], [0.01, 0.024, 0.014]), ell([-0.071, 1.615, -0.005], [0.01, 0.024, 0.014]),
+  // neck and trunk
+  cone([0, 1.42, -0.01], [0, 1.545, 0.0], 0.058, 0.05),
+  ell([0, 1.3, 0.0], [0.165, 0.13, 0.105]), ell([0, 1.17, 0.005], [0.15, 0.13, 0.1]), ell([0, 1.03, 0.01], [0.14, 0.12, 0.095]), ell([0, 0.93, -0.005], [0.165, 0.09, 0.105]),
+  ...both([
+    cone([0.05, 1.41, -0.01], [0.185, 1.385, -0.01], 0.055, 0.058),     // shoulder
+    ell([0.075, 1.29, 0.07], [0.075, 0.055, 0.04]),                       // chest
+    ell([0.08, 0.875, -0.055], [0.085, 0.085, 0.07]),                     // buttock
+    // arm
+    cone([0.195, 1.375, -0.01], [0.245, 1.105, -0.025], 0.047, 0.036),
+    cone([0.245, 1.105, -0.025], [0.282, 0.865, 0.03], 0.035, 0.025),
+    ell([0.292, 0.81, 0.045], [0.019, 0.055, 0.04], [0.1, 0, 0.15]),
+    cone([0.29, 0.765, 0.05], [0.296, 0.7, 0.055], 0.015, 0.011),          // fingers
+    cone([0.284, 0.81, 0.08], [0.285, 0.765, 0.1], 0.011, 0.009),          // thumb
+    // leg
+    cone([0.088, 0.9, 0.0], [0.1, 0.5, 0.012], 0.088, 0.052),
+    cone([0.1, 0.5, 0.012], [0.1, 0.085, -0.01], 0.05, 0.032),
+    ell([0.1, 0.37, -0.03], [0.045, 0.095, 0.047]),
+    cone([0.1, 0.05, -0.035], [0.112, 0.022, 0.14], 0.036, 0.027),
+    cone([0.1, 0.06, -0.04], [0.1, 0.03, -0.055], 0.03, 0.026),
+  ]),
+], { k: 0.035 });
+
+// skeleton ---------------------------------------------------------------
+const skullClip = (x, y, z) => -(1.67 + 0.2 * z - y); // removes the skull cap above a tilted plane
+const SKULL = shape([
+  ell([0, 1.638, -0.008], [0.068, 0.082, 0.088]),                          // cranium
+  ell([0, 1.598, 0.055], [0.05, 0.034, 0.03]),                              // brow and upper face
+  ell([0, 1.566, 0.062], [0.036, 0.022, 0.024]),                            // maxilla
+  ...both([
+    cone([0.05, 1.598, 0.055], [0.066, 1.594, -0.005], 0.006, 0.005),       // zygomatic arch
+    ell([0.045, 1.592, 0.06], [0.014, 0.012, 0.012]),                       // cheekbone
+    cone([0.052, 1.585, -0.012], [0.046, 1.53, 0.012], 0.0085, 0.008),      // mandible ramus
+    cone([0.046, 1.53, 0.012], [0.0, 1.522, 0.068], 0.008, 0.0095),         // mandible body
+    ell([0.055, 1.6, -0.045], [0.012, 0.016, 0.014]),                       // mastoid
+  ]),
+], { k: 0.01, cuts: [...both([ball([0.029, 1.618, 0.078], 0.0185)]), ell([0, 1.585, 0.086], [0.009, 0.015, 0.02]), ell([0, 1.642, -0.008], [0.062, 0.076, 0.082])], clip: skullClip });
+const TEETH = shape([0, 1, 2, 3, 4, 5, 6, 7].flatMap((i) => { const a = (i / 7 - 0.5) * 2.4, x = Math.sin(a) * 0.026, z = 0.058 + Math.cos(a) * 0.018; return [ell([x, 1.553, z], [0.0042, 0.0055, 0.004]), ell([x * 0.98, 1.541, z - 0.001], [0.0041, 0.005, 0.004])]; }), { k: 0.001 });
+
+const SPINE_PTS = [];
+for (let i = 0; i < 24; i++) {
+  const u = i / 23;
+  const y = 1.53 - u * 0.56;
+  const z = -0.035 - 0.05 * Math.sin(Math.min(1, u * 1.6) * Math.PI) * (u < 0.62 ? 1 : 0) + (u > 0.62 ? -0.065 + (u - 0.62) * 0.08 : 0);
+  SPINE_PTS.push([0, y, u > 0.62 ? z : z]);
+}
+const spinePrims = [];
+SPINE_PTS.forEach(([x, y, z], i) => {
+  const s = 0.6 + 0.4 * (i / 23), w = 0.014 + 0.012 * (i / 23);
+  spinePrims.push(ell([0, y, z], [w, 0.0075 * s + 0.003, w * 0.85]));
+  spinePrims.push(cone([0, y, z - w * 0.8], [0, y - 0.008, z - w * 0.8 - 0.025], 0.004, 0.003));
+  spinePrims.push(cone([-w * 1.1, y, z - w * 0.7], [w * 1.1, y, z - w * 0.7], 0.003, 0.003));
+});
+spinePrims.push(ell([0, 0.93, -0.07], [0.04, 0.05, 0.018], [0.4, 0, 0]), cone([0, 0.89, -0.08], [0, 0.865, -0.065], 0.008, 0.004));
+const SPINE = shape(spinePrims, { k: 0.002 });
+
+const PELVIS = shape(both([
+  ell([0.085, 0.975, -0.025], [0.07, 0.055, 0.012], [0.15, -0.55, 0.25]),
+  cone([0.075, 0.92, -0.06], [0.085, 0.885, 0.0], 0.016, 0.02),
+  ball([0.085, 0.885, 0.0], 0.026),
+  cone([0.085, 0.885, 0.0], [0.07, 0.84, -0.005], 0.017, 0.013),
+  cone([0.07, 0.84, -0.005], [0.015, 0.855, 0.05], 0.01, 0.012),
+  cone([0.085, 0.885, 0.0], [0.03, 0.872, 0.055], 0.011, 0.01),
+  cone([0.03, 0.93, -0.075], [0.075, 0.92, -0.06], 0.012, 0.014),
+]), { k: 0.012, cuts: both([ball([0.085, 0.885, 0.012], 0.023)]) });
+const RIB_CAGE = []; // built as tubes
+const longBone = (a, b, r, endA, endB) => shape([cone(a, b, r, r * 0.9), ...(endA || []), ...(endB || [])], { k: 0.008 });
+const FEMUR = (s) => longBone([s * 0.125, 0.85, 0.0], [s * 0.1, 0.515, 0.008], 0.013, [ball([s * 0.088, 0.886, 0.0], 0.022), cone([s * 0.088, 0.886, 0.0], [s * 0.128, 0.87, -0.005], 0.012, 0.014), ell([s * 0.132, 0.868, -0.008], [0.016, 0.022, 0.016])], [ell([s * 0.1, 0.5, 0.004], [0.032, 0.02, 0.026])]);
+const TIBIA = (s) => shape([cone([s * 0.1, 0.475, 0.005], [s * 0.098, 0.085, -0.01], 0.016, 0.011), ell([s * 0.1, 0.475, 0.0], [0.034, 0.014, 0.028]), ell([s * 0.095, 0.075, -0.008], [0.018, 0.014, 0.018]),
+  cone([s * 0.126, 0.46, -0.012], [s * 0.122, 0.07, -0.014], 0.007, 0.006), ell([s * 0.125, 0.062, -0.014], [0.008, 0.014, 0.01])], { k: 0.008 });
+const PATELLA = (s) => shape([ell([s * 0.1, 0.5, 0.037], [0.022, 0.024, 0.01])], { k: 0 });
+const HUMERUS = (s) => shape([ball([s * 0.2, 1.375, -0.012], 0.024), cone([s * 0.205, 1.36, -0.012], [s * 0.244, 1.12, -0.026], 0.012, 0.011), ell([s * 0.246, 1.11, -0.025], [0.028, 0.013, 0.016], [0, 0, s * 0.2])], { k: 0.01 });
+const FOREARM = (s) => shape([cone([s * 0.24, 1.1, -0.035], [s * 0.272, 0.875, 0.02], 0.009, 0.007), ell([s * 0.24, 1.105, -0.038], [0.01, 0.014, 0.012]),
+  cone([s * 0.254, 1.095, -0.015], [s * 0.29, 0.875, 0.045], 0.007, 0.01)], { k: 0.006 });
+function handShape(s) {
+  const pr = [ell([s * 0.284, 0.855, 0.04], [0.016, 0.014, 0.026], [0.2, 0, s * 0.15])];
+  const fingers = [[0.012, 0.052], [0.004, 0.058], [-0.004, 0.055], [-0.011, 0.046]];
+  fingers.forEach(([dz, len], f) => {
+    const b0 = [s * (0.288 + f * 0.0015), 0.842, 0.04 + dz * 1.6 + 0.012];
+    const b1 = [s * (0.292 + f * 0.002), 0.79, 0.045 + dz * 2.2 + 0.01];
+    const b2 = [s * (0.296 + f * 0.002), 0.79 - len, 0.05 + dz * 2.4 + 0.012];
+    pr.push(cone(b0, b1, 0.0045, 0.0042), cone([b1[0], b1[1] - 0.004, b1[2]], b2, 0.0038, 0.003));
+  });
+  pr.push(cone([s * 0.282, 0.85, 0.06], [s * 0.284, 0.815, 0.085], 0.005, 0.0045), cone([s * 0.284, 0.81, 0.088], [s * 0.287, 0.775, 0.103], 0.0042, 0.0035));
+  return shape(pr, { k: 0.003 });
+}
+function footShape(s) {
+  const pr = [ell([s * 0.098, 0.035, -0.05], [0.018, 0.02, 0.03], [0.3, 0, 0]), ell([s * 0.1, 0.055, -0.012], [0.018, 0.014, 0.022])];
+  [-0.024, -0.012, 0, 0.012, 0.022].forEach((dx, t) => {
+    const a = [s * (0.1 + dx * 0.6), 0.045, 0.01], b = [s * (0.104 + dx), 0.018, 0.1 - Math.abs(t - 0.5) * 0.004 - t * 0.003];
+    pr.push(cone(a, b, 0.0055, 0.0045), cone(b, [b[0] + s * dx * 0.1, 0.012, b[2] + 0.03 - t * 0.003], 0.0042, 0.0035));
+  });
+  return shape(pr, { k: 0.006 });
+}
+const SCAPULA = (s) => shape([ell([s * 0.1, 1.32, -0.098], [0.055, 0.075, 0.008], [0.1, s * -0.35, s * 0.15]), cone([s * 0.07, 1.36, -0.105], [s * 0.18, 1.4, -0.04], 0.006, 0.008), ball([s * 0.188, 1.378, -0.03], 0.018)], { k: 0.01, cuts: [ball([s * 0.2, 1.375, -0.012], 0.024)] });
+
+// organs ----------------------------------------------------------------
+const BRAIN = shape([ell([0, 1.655, -0.008], [0.062, 0.052, 0.079]), ell([0, 1.64, 0.035], [0.056, 0.04, 0.045])], { k: 0.02,
+  detail: (x, y, z) => 0.0025 * (Math.sin(x * 140 + Math.sin(z * 90) * 2) * Math.sin(z * 120 + Math.sin(y * 110) * 2) + Math.sin(y * 150 + x * 40) * 0.5),
+  clip: (x, y, z) => -(Math.abs(x) - 0.0022) });
+const CEREB = shape([ell([0, 1.605, -0.058], [0.046, 0.024, 0.032]), cone([0, 1.62, -0.03], [0, 1.525, -0.03], 0.013, 0.01)], { k: 0.01, detail: (x, y, z) => 0.0012 * Math.sin(y * 420) });
+const EYES = shape(both([ball([0.029, 1.618, 0.071], 0.0115)]), { k: 0 });
+const LUNGS = shape([
+  ...[R, L].map((s) => ell([s * 0.072, 1.265, -0.005], [s === L ? 0.058 : 0.066, 0.125, 0.078])),
+  ...[R, L].map((s) => ell([s * 0.078, 1.2, -0.01], [s === L ? 0.065 : 0.072, 0.075, 0.085])),
+], { k: 0.02, cuts: [ell([0.025, 1.205, 0.06], [0.05, 0.065, 0.05], [0, 0, -0.5]), ell([0, 1.23, -0.01], [0.018, 0.2, 0.1])],
+  detail: (x, y, z) => 0.0008 * noise(x * 3, y * 3, z * 3) });
+const HEART = shape([ell([0.022, 1.205, 0.052], [0.045, 0.062, 0.04], [0.25, 0, 0.55]), ell([-0.005, 1.245, 0.035], [0.035, 0.03, 0.03]), cone([0.0, 1.25, 0.05], [0.005, 1.31, 0.03], 0.012, 0.011)], { k: 0.012 });
+const LIVER = shape([ell([-0.06, 1.075, 0.025], [0.105, 0.058, 0.075], [0, 0, 0.18]), ell([0.03, 1.09, 0.045], [0.06, 0.03, 0.048], [0, 0, 0.1])], { k: 0.025, clip: (x, y, z) => (1.035 - 0.18 * x) - y - 0.0 > 0 ? (1.035 - 0.18 * x) - y : -1 });
+const GALL = shape([ell([-0.045, 1.032, 0.083], [0.012, 0.026, 0.012], [0.4, 0, -0.2])], { k: 0 });
+const STOMACH = shape([cone([0.05, 1.125, 0.02], [0.085, 1.075, 0.04], 0.026, 0.045), cone([0.085, 1.075, 0.04], [0.06, 1.022, 0.06], 0.045, 0.036), cone([0.06, 1.022, 0.06], [0.005, 1.02, 0.065], 0.036, 0.02), cone([0.005, 1.02, 0.065], [-0.025, 1.03, 0.05], 0.02, 0.012)], { k: 0.02 });
+const SPLEEN = shape([ell([0.112, 1.08, -0.045], [0.022, 0.052, 0.03], [0.3, 0, -0.3])], { k: 0 });
+const PANCREAS = shape([cone([-0.035, 1.015, 0.01], [0.04, 1.03, 0.0], 0.016, 0.012), cone([0.04, 1.03, 0.0], [0.095, 1.045, -0.025], 0.012, 0.008)], { k: 0.01, detail: (x, y, z) => 0.0012 * noise(x * 4, y * 4, z * 4) });
+const KIDNEYS = shape([ell([0.068, 1.0, -0.05], [0.024, 0.05, 0.02], [0, 0.3, -0.15]), ell([-0.066, 0.985, -0.05], [0.024, 0.05, 0.02], [0, -0.3, 0.15])], { k: 0, cuts: [ell([0.044, 1.0, -0.045], [0.01, 0.016, 0.012]), ell([-0.042, 0.985, -0.045], [0.01, 0.016, 0.012])] });
+const ADRENAL = shape([ell([0.062, 1.053, -0.05], [0.017, 0.01, 0.012], [0, 0, 0.4]), ell([-0.06, 1.038, -0.05], [0.017, 0.01, 0.012], [0, 0, -0.4])], { k: 0 });
+const BLADDER = shape([ell([0, 0.835, 0.05], [0.036, 0.03, 0.03])], { k: 0 });
+
+// =====================================================================
+// Tubes (ribs, vessels, nerves, airways, bowel)
+// =====================================================================
+const V3 = (a) => new T3.Vector3(a[0], a[1], a[2]);
+function tubeGeo(points, r0, r1 = r0, opt = {}) {
+  const curve = new T3.CatmullRomCurve3(points.map(V3), false, "centripetal");
+  const segs = opt.segs || Math.max(24, points.length * 10), radial = opt.radial || 12;
+  const g = new T3.TubeGeometry(curve, segs, 1, radial, false);
+  const pos = g.attributes.position;
+  for (let s = 0; s <= segs; s++) {
+    const u = s / segs, c = curve.getPointAt(u);
+    let rr = r0 + (r1 - r0) * u;
+    if (opt.mod) rr *= opt.mod(u, curve.getLength() * u);
+    for (let j = 0; j <= radial; j++) {
+      const i = s * (radial + 1) + j;
+      pos.setXYZ(i, c.x + (pos.getX(i) - c.x) * rr, c.y + (pos.getY(i) - c.y) * rr, c.z + (pos.getZ(i) - c.z) * rr);
+    }
+  }
+  g.computeVertexNormals();
+  // round end caps
+  const caps = [0, 1].map((u) => { const sg = new T3.SphereGeometry(u ? r1 * (opt.mod ? opt.mod(1, curve.getLength()) : 1) : r0 * (opt.mod ? opt.mod(0, 0) : 1), radial, 8); const p = curve.getPointAt(u); sg.translate(p.x, p.y, p.z); return sg; });
+  return merge([g, ...caps]);
+}
+function merge(geos) {
+  let n = 0, m = 0; geos.forEach((g) => { n += g.attributes.position.count; m += g.index ? g.index.count : g.attributes.position.count; });
+  const pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3), idx = new Uint32Array(m);
+  let o = 0, io = 0;
+  geos.forEach((g) => {
+    const c = g.attributes.position.count;
+    pos.set(g.attributes.position.array, o * 3); nrm.set(g.attributes.normal.array, o * 3);
+    if (g.index) { const a = g.index.array; for (let i = 0; i < a.length; i++) idx[io++] = a[i] + o; }
+    else for (let i = 0; i < c; i++) idx[io++] = o + i;
+    o += c;
+  });
+  const out = new T3.BufferGeometry();
+  out.setAttribute("position", new T3.BufferAttribute(pos, 3)); out.setAttribute("normal", new T3.BufferAttribute(nrm, 3)); out.setIndex(new T3.BufferAttribute(idx, 1));
+  out.computeBoundingSphere();
+  return out;
+}
+const mirrorPts = (pts) => pts.map(mx);
+function ribGeos() {
+  const out = [];
+  for (let i = 0; i < 12; i++) {
+    const y = 1.405 - i * 0.0245, t = i / 11;
+    const wide = 0.085 + 0.075 * Math.sin(Math.min(1, t * 1.25 + 0.2) * Math.PI * 0.62);
+    const depth = 0.085 + 0.025 * Math.sin(Math.min(1, t * 1.3) * Math.PI * 0.55);
+    const spineZ = SPINE_PTS[Math.round(7 + i * (11 / 11))][2] - 0.012;
+    const float = i >= 10, end = float ? 0.45 : i >= 7 ? 0.85 : 1;
+    const pts = [];
+    for (let k = 0; k <= 10; k++) {
+      const a = (k / 10) * Math.PI * end;
+      const xx = 0.018 + Math.sin(a) * wide, zz = spineZ + (1 - Math.cos(a)) * 0.5 * (depth + 0.07 - spineZ * 0) - 0.0;
+      pts.push([xx, y - Math.sin(a * 0.9) * 0.03 - (k / 10) * (0.05 + t * 0.04), zz]);
+    }
+    if (!float) pts[pts.length - 1] = [i < 7 ? 0.02 : 0.045 + (i - 7) * 0.012, 1.31 - i * 0.012 - (i >= 7 ? 0.04 : 0), 0.1];
+    out.push(tubeGeo(pts, 0.0055, 0.0045, { radial: 8 }), tubeGeo(mirrorPts(pts), 0.0055, 0.0045, { radial: 8 }));
+  }
+  return merge(out);
+}
+const both2 = (pts, r0, r1, opt) => merge([tubeGeo(pts, r0, r1, opt), tubeGeo(mirrorPts(pts), r0, r1, opt)]);
+
+function smallIntestine() {
+  const pts = []; const rows = 9;
+  for (let r = 0; r < rows; r++) {
+    const y = 0.995 - r * 0.0165, dir = r % 2 ? -1 : 1;
+    for (let c = 0; c <= 5; c++) {
+      const u = c / 5, x = (dir > 0 ? -0.075 + u * 0.15 : 0.075 - u * 0.15);
+      pts.push([x, y + Math.sin(u * Math.PI * 2 + r) * 0.006, 0.045 + Math.sin(u * Math.PI * 3 + r * 1.7) * 0.022]);
+    }
+  }
+  return tubeGeo(pts, 0.0105, 0.0105, { segs: 700, radial: 10 });
+}
+function largeIntestine() {
+  const pts = [[-0.092, 0.875, 0.035], [-0.1, 0.94, 0.035], [-0.098, 1.0, 0.035], [-0.07, 1.03, 0.06], [0.0, 1.015, 0.08], [0.07, 1.03, 0.065], [0.105, 1.01, 0.03], [0.105, 0.94, 0.02], [0.098, 0.88, 0.025], [0.06, 0.86, 0.045], [0.02, 0.865, 0.02], [0.0, 0.84, -0.035], [0.0, 0.8, -0.04]];
+  return tubeGeo(pts, 0.022, 0.016, { segs: 400, radial: 14, mod: (u, s) => 1 + 0.12 * Math.max(0, Math.sin(s * 220)) * (u < 0.85 ? 1 : 0) });
+}
+function trachea() {
+  const ring = (u, s) => 1 + 0.08 * Math.max(0, Math.sin(s * 900));
+  return merge([tubeGeo([[0, 1.5, 0.045], [0, 1.42, 0.04], [0, 1.335, 0.03]], 0.009, 0.009, { mod: ring }),
+    tubeGeo([[0, 1.335, 0.03], [-0.03, 1.31, 0.02], [-0.06, 1.28, 0.01]], 0.0065, 0.005), tubeGeo([[0, 1.335, 0.03], [0.03, 1.31, 0.02], [0.055, 1.285, 0.01]], 0.0065, 0.005)]);
+}
+
+// =====================================================================
+// Scene
+// =====================================================================
+const renderer = new T3.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputEncoding = T3.sRGBEncoding;
+renderer.toneMapping = T3.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
+renderer.sortObjects = true;
+stage.insertBefore(renderer.domElement, stage.firstChild);
+const scene = new T3.Scene();
+const camera = new T3.PerspectiveCamera(30, 1, 0.02, 50);
+scene.add(new T3.HemisphereLight(0xfff6f0, 0x3a2c2a, 0.7));
+const key = new T3.DirectionalLight(0xffffff, 1.5); key.position.set(2.5, 4, 5); scene.add(key);
+const fill = new T3.DirectionalLight(0xffe6df, 0.5); fill.position.set(-4, 1.5, 2); scene.add(fill);
+const rim = new T3.DirectionalLight(0xffffff, 0.9); rim.position.set(-1, 3, -5); scene.add(rim);
+(function env() {
+  const pm = new T3.PMREMGenerator(renderer), room = new T3.Scene();
+  const box = new T3.Mesh(new T3.BoxGeometry(10, 10, 10), new T3.MeshBasicMaterial({ side: T3.BackSide, vertexColors: true }));
+  const pos = box.geometry.attributes.position, col = [];
+  for (let i = 0; i < pos.count; i++) { const v = 0.3 + 0.7 * Math.max(0, pos.getY(i) / 5); col.push(v, v * 0.97, v * 0.95); }
+  box.geometry.setAttribute("color", new T3.Float32BufferAttribute(col, 3)); room.add(box);
+  const lamp = new T3.Mesh(new T3.PlaneGeometry(4, 2), new T3.MeshBasicMaterial({ color: new T3.Color(6, 6, 6) }));
+  lamp.position.set(2, 4.5, 2); lamp.lookAt(0, 0, 0); room.add(lamp);
+  scene.environment = pm.fromScene(room, 0.04).texture;
+})();
+const lin = (hex) => new T3.Color(hex).convertSRGBToLinear();
+const MAT = {
+  skin: () => new T3.MeshPhysicalMaterial({ color: lin(0xc98663), roughness: 0.55, metalness: 0, clearcoat: 0.15, clearcoatRoughness: 0.6, transparent: true, opacity: 0.25, depthWrite: false }),
+  bone: () => new T3.MeshPhysicalMaterial({ color: lin(0xdccaa3), roughness: 0.62, clearcoat: 0.15, clearcoatRoughness: 0.6 }),
+  wet: (hex, rough = 0.4) => new T3.MeshPhysicalMaterial({ color: lin(hex), roughness: rough, clearcoat: 0.55, clearcoatRoughness: 0.3 }),
+};
+const body = new T3.Group(); scene.add(body);
+const meshes = [];
+function add(part, geo, mat, opts = {}) {
+  const m = new T3.Mesh(geo, mat);
+  m.userData.part = part; m.userData.sys = P[part].sys; m.userData.layer = opts.layer || P[part].sys;
+  if (opts.order != null) m.renderOrder = opts.order;
+  body.add(m); meshes.push(m);
+  return m;
+}
+// platform
+const isDark = () => { const t = document.documentElement.getAttribute("data-theme"); return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
+const plat = new T3.Mesh(new T3.CylinderGeometry(0.42, 0.44, 0.02, 96), new T3.MeshPhysicalMaterial({ color: lin(isDark() ? 0x2a2e35 : 0xd9dde3), roughness: 0.35, clearcoat: 0.4 }));
+plat.position.y = -0.012; scene.add(plat);
+const ringG = new T3.RingGeometry(0.36, 0.362, 128); ringG.rotateX(-Math.PI / 2);
+const ringM = new T3.Mesh(ringG, new T3.MeshBasicMaterial({ color: 0x9aa1ab })); ringM.position.y = 0.0002; scene.add(ringM);
+const shadowTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), grd = g.createRadialGradient(64, 64, 2, 64, 64, 62); grd.addColorStop(0, "rgba(0,0,0,0.45)"); grd.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = grd; g.fillRect(0, 0, 128, 128); return new T3.CanvasTexture(c); })();
+const shadow = new T3.Mesh(new T3.PlaneGeometry(0.6, 0.45), new T3.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
+shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.001; scene.add(shadow);
+
+// build jobs, one per frame-slice so the page stays responsive
+const H = { fine: 0.0028, mid: 0.0045, coarse: 0.006 };
+const JOBS = [
+  ["Piel", () => add("skin", surfaceNet(SKIN, 0.0068), MAT.skin(), { order: 10 })],
+  ["Cráneo", () => add("skull", merge([surfaceNet(SKULL, H.fine), surfaceNet(TEETH, 0.0012)]), MAT.bone())],
+  ["Columna", () => add("spine", surfaceNet(SPINE, 0.0022), MAT.bone())],
+  ["Costillas", () => { add("ribs", ribGeos(), MAT.bone()); add("sternum", surfaceNet(shape([ell([0, 1.33, 0.1], [0.022, 0.025, 0.008]), cone([0, 1.31, 0.102], [0, 1.2, 0.106], 0.012, 0.009), cone([0, 1.2, 0.106], [0, 1.175, 0.1], 0.006, 0.003)], { k: 0.01 }), 0.0025), MAT.bone()); }],
+  ["Cintura escapular", () => { add("clavicle", both2([[0.015, 1.405, 0.085], [0.08, 1.42, 0.075], [0.14, 1.415, 0.03], [0.18, 1.405, -0.01]], 0.0065, 0.006), MAT.bone()); add("scapula", merge([surfaceNet(SCAPULA(L), 0.003), surfaceNet(SCAPULA(R), 0.003)]), MAT.bone()); }],
+  ["Brazos", () => { add("humerus", merge([surfaceNet(HUMERUS(L), 0.003), surfaceNet(HUMERUS(R), 0.003)]), MAT.bone()); add("forearm", merge([surfaceNet(FOREARM(L), 0.0025), surfaceNet(FOREARM(R), 0.0025)]), MAT.bone()); }],
+  ["Manos", () => add("hand", merge([surfaceNet(handShape(L), 0.0016), surfaceNet(handShape(R), 0.0016)]), MAT.bone())],
+  ["Pelvis", () => add("pelvis", surfaceNet(PELVIS, 0.003), MAT.bone())],
+  ["Piernas", () => { add("femur", merge([surfaceNet(FEMUR(L), 0.0035), surfaceNet(FEMUR(R), 0.0035)]), MAT.bone()); add("patella", merge([surfaceNet(PATELLA(L), 0.002), surfaceNet(PATELLA(R), 0.002)]), MAT.bone()); add("tibia", merge([surfaceNet(TIBIA(L), 0.003), surfaceNet(TIBIA(R), 0.003)]), MAT.bone()); }],
+  ["Pies", () => add("foot", merge([surfaceNet(footShape(L), 0.0018), surfaceNet(footShape(R), 0.0018)]), MAT.bone())],
+  ["Encéfalo", () => { add("brain", surfaceNet(BRAIN, 0.0018), MAT.wet(0xe3a3a0, 0.5)); add("cerebellum", surfaceNet(CEREB, 0.0018), MAT.wet(0xd48f8c, 0.5)); add("eyes", surfaceNet(EYES, 0.0015), MAT.wet(0xf4f1ec, 0.15)); }],
+  ["Vías respiratorias", () => { add("trachea", trachea(), MAT.wet(0xe2bcae, 0.45)); add("lungs", surfaceNet(LUNGS, H.mid), MAT.wet(0xd98587, 0.6)); add("esophagus", tubeGeo([[0, 1.5, 0.02], [0.002, 1.35, 0.0], [0.012, 1.2, -0.01], [0.04, 1.13, 0.015], [0.05, 1.12, 0.02]], 0.007, 0.008), MAT.wet(0xd2958a)); }],
+  ["Corazón y vasos", () => {
+    const heart = add("heart", surfaceNet(HEART, 0.0022), MAT.wet(0x8c1d26, 0.38)); heart.userData.beat = true;
+    add("aorta", tubeGeo([[0.005, 1.27, 0.045], [0.0, 1.315, 0.03], [0.012, 1.315, -0.01], [0.012, 1.27, -0.045], [0.008, 1.1, -0.045], [0.004, 0.96, -0.03], [0.0, 0.93, -0.02]], 0.011, 0.008), MAT.wet(0xc0303a, 0.35));
+    const art = [];
+    [L, R].forEach((s) => {
+      art.push(tubeGeo([[0, 0.93, -0.02], [s * 0.045, 0.9, 0.0], [s * 0.08, 0.84, 0.035], [s * 0.098, 0.7, 0.03], [s * 0.1, 0.5, -0.012], [s * 0.1, 0.3, -0.02], [s * 0.103, 0.08, 0.0], [s * 0.108, 0.04, 0.08]], 0.0055, 0.0032));
+      art.push(tubeGeo([[s * 0.005, 1.315, 0.02], [s * 0.022, 1.42, 0.03], [s * 0.028, 1.52, 0.025], [s * 0.04, 1.58, 0.01]], 0.0042, 0.0035));
+      art.push(tubeGeo([[s * 0.006, 1.316, 0.01], [s * 0.07, 1.385, 0.02], [s * 0.15, 1.375, 0.0], [s * 0.215, 1.33, -0.005], [s * 0.245, 1.1, -0.005], [s * 0.285, 0.87, 0.05], [s * 0.29, 0.83, 0.06]], 0.0042, 0.0028));
+    });
+    add("arteries", merge(art), MAT.wet(0xc0303a, 0.35));
+    const ven = [tubeGeo([[-0.02, 0.93, -0.035], [-0.022, 1.05, -0.035], [-0.025, 1.18, -0.02], [-0.015, 1.24, 0.03]], 0.009, 0.009), tubeGeo([[-0.018, 1.26, 0.035], [-0.02, 1.33, 0.02], [-0.02, 1.37, 0.015]], 0.008, 0.008)];
+    [L, R].forEach((s) => {
+      ven.push(tubeGeo([[s * 0.02, 0.93, -0.035], [s * 0.06, 0.88, 0.005], [s * 0.088, 0.82, 0.04], [s * 0.106, 0.68, 0.025], [s * 0.106, 0.5, -0.02], [s * 0.094, 0.3, -0.03], [s * 0.093, 0.08, -0.012]], 0.006, 0.0036));
+      ven.push(tubeGeo([[-0.018 + s * 0.0, 1.37, 0.015], [s * 0.035, 1.42, 0.035], [s * 0.042, 1.52, 0.03], [s * 0.05, 1.575, 0.0]], 0.0055, 0.004));
+      ven.push(tubeGeo([[-0.02, 1.37, 0.015], [s * 0.08, 1.375, 0.03], [s * 0.16, 1.365, 0.012], [s * 0.225, 1.32, 0.008], [s * 0.255, 1.1, 0.008], [s * 0.29, 0.875, 0.035]], 0.0045, 0.003));
+    });
+    add("veins", merge(ven), MAT.wet(0x3c4f9a, 0.4));
+  }],
+  ["Abdomen", () => {
+    add("liver", surfaceNet(LIVER, H.mid), MAT.wet(0x6e2220, 0.35)); add("gallbladder", surfaceNet(GALL, 0.002), MAT.wet(0x5f8a3a, 0.3));
+    add("stomach", surfaceNet(STOMACH, 0.003), MAT.wet(0xd58b7e, 0.45)); add("spleen", surfaceNet(SPLEEN, 0.0025), MAT.wet(0x6d2a48, 0.4));
+    add("pancreas", surfaceNet(PANCREAS, 0.0022), MAT.wet(0xe6b27f, 0.55)); add("kidneys", surfaceNet(KIDNEYS, 0.0025), MAT.wet(0x8a3528, 0.38));
+    add("adrenal", surfaceNet(ADRENAL, 0.0018), MAT.wet(0xd9a33c, 0.5)); add("bladder", surfaceNet(BLADDER, 0.0025), MAT.wet(0xdea08c, 0.4));
+    add("smallint", smallIntestine(), MAT.wet(0xe3a18b, 0.45)); add("largeint", largeIntestine(), MAT.wet(0xc98472, 0.5));
+  }],
+  ["Sistema nervioso", () => {
+    const cord = SPINE_PTS.filter((p, i) => i < 19).map((p) => [0, p[1], p[2] - 0.012]);
+    add("cord", tubeGeo([[0, 1.55, -0.03], ...cord], 0.0055, 0.0035), MAT.wet(0xe9c64a, 0.45));
+    const nv = [];
+    [L, R].forEach((s) => {
+      nv.push(tubeGeo([[s * 0.03, 0.93, -0.075], [s * 0.07, 0.88, -0.075], [s * 0.1, 0.78, -0.06], [s * 0.1, 0.55, -0.035], [s * 0.1, 0.48, -0.035], [s * 0.104, 0.3, -0.035], [s * 0.1, 0.1, -0.03], [s * 0.103, 0.05, 0.05]], 0.0045, 0.0022));
+      nv.push(tubeGeo([[s * 0.1, 0.5, -0.035], [s * 0.122, 0.45, -0.02], [s * 0.125, 0.3, 0.01], [s * 0.11, 0.06, 0.06]], 0.0025, 0.0018));
+      nv.push(tubeGeo([[s * 0.01, 1.44, -0.035], [s * 0.08, 1.38, -0.01], [s * 0.18, 1.35, -0.02], [s * 0.232, 1.15, -0.03], [s * 0.255, 1.08, -0.035], [s * 0.285, 0.86, 0.02], [s * 0.29, 0.8, 0.05]], 0.003, 0.0018));
+      nv.push(tubeGeo([[s * 0.2, 1.33, -0.005], [s * 0.24, 1.15, 0.0], [s * 0.272, 0.87, 0.06]], 0.0022, 0.0016));
+      for (let i = 0; i < 12; i++) { const p = SPINE_PTS[7 + i]; nv.push(tubeGeo([[0, p[1], p[2] - 0.01], [s * 0.03, p[1] - 0.006, p[2] - 0.005], [s * 0.06, p[1] - 0.02, p[2] + 0.005]], 0.0012, 0.0008, { radial: 6 })); }
+    });
+    add("nerves", merge(nv), MAT.wet(0xe9c64a, 0.45));
+  }],
+];
+
+// =====================================================================
+// Camera / orbit
+// =====================================================================
+const view = { yaw: 0.4, pitch: 0.06, dist: 3.9, ty: 0.9 };
+const goal = { ...view };
+let vYaw = 0, autoSpin = !still.matches, lastInput = -1e9;
+function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(stage);
+function placeCamera() {
+  const fitK = camera.aspect < 0.75 ? 1.12 : 1;
+  const d = view.dist * fitK;
+  camera.position.set(Math.sin(view.yaw) * Math.cos(view.pitch) * d, view.ty + Math.sin(view.pitch) * d, Math.cos(view.yaw) * Math.cos(view.pitch) * d);
+  camera.lookAt(0, view.ty, 0);
+}
+const ZONES = { Cuerpo: [0.9, 3.9], Cabeza: [1.6, 0.75], "Tórax": [1.25, 1.1], Abdomen: [1.0, 1.05], Brazos: [1.1, 1.6], Piernas: [0.45, 1.9] };
+
+// =====================================================================
+// Picking & selection
+// =====================================================================
+const ray = new T3.Raycaster(), ndc = new T3.Vector2();
+const layersOn = { skin: true, bone: true, organ: true, blood: true, nerve: true };
+let skinOpacity = 0.25, sel = null, hover = null, selPoint = null, isolate = false;
+function visibleMeshes() { return meshes.filter((m) => m.visible && !(m.userData.part === "skin" && skinOpacity < 0.55)); }
+function pick(cx, cy) {
+  const r = stage.getBoundingClientRect();
+  ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(visibleMeshes(), false)[0];
+  return hit ? { part: hit.object.userData.part, point: body.worldToLocal(hit.point.clone()) } : null;
+}
+function applyVisibility() {
+  meshes.forEach((m) => {
+    const p = m.userData.part;
+    let on = layersOn[m.userData.layer];
+    if (p === "skin") { on = on && skinOpacity > 0.001; m.material.opacity = skinOpacity; m.material.depthWrite = skinOpacity > 0.97; m.material.transparent = skinOpacity <= 0.97; }
+    if (isolate && sel) on = p === sel;
+    m.visible = on;
+  });
+}
+function applyHighlight(pulse) {
+  meshes.forEach((m) => {
+    const on = m.userData.part === sel, hv = m.userData.part === hover && !on;
+    if (on) m.material.emissive.setRGB(0.32 * (0.5 + 0.5 * pulse), 0.07 * (0.5 + 0.5 * pulse), 0.04);
+    else if (hv) m.material.emissive.setRGB(0.08, 0.03, 0.02);
+    else m.material.emissive.setRGB(0, 0, 0);
+  });
+}
+
+// =====================================================================
+// Pointer, wheel, keyboard
+// =====================================================================
+const pointers = new Map(); let drag = null, pinch = null;
+stage.addEventListener("contextmenu", (e) => e.preventDefault());
+stage.addEventListener("pointerdown", (e) => {
+  stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 1) drag = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, tl: performance.now(), moved: false, pan: e.shiftKey || e.button === 2 };
+  if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), my: (a.y + b.y) / 2 }; if (drag) drag.moved = true; }
+  vYaw = 0; lastInput = performance.now(); stage.classList.add("grabbing");
+});
+stage.addEventListener("pointermove", (e) => {
+  if (!pointers.has(e.pointerId)) {
+    if (e.pointerType === "mouse" && meshes.length) { const h = pick(e.clientX, e.clientY), p = h ? h.part : null; if (p !== hover) { hover = p; stage.classList.toggle("over-part", !!p); } }
+    return;
+  }
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const hpx = stage.clientHeight;
+  if (pointers.size === 2 && pinch) {
+    const [a, b] = [...pointers.values()], d = Math.hypot(a.x - b.x, a.y - b.y), my = (a.y + b.y) / 2;
+    goal.dist = view.dist = Math.max(0.35, Math.min(5.5, view.dist * pinch.d / d));
+    goal.ty = view.ty = Math.max(0.05, Math.min(1.8, view.ty + (my - pinch.my) / hpx * view.dist * 0.55));
+    pinch.d = d; pinch.my = my; lastInput = performance.now(); return;
+  }
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 6) drag.moved = true;
+  if (!drag.moved) return;
+  if (drag.pan || e.shiftKey) { goal.ty = view.ty = Math.max(0.05, Math.min(1.8, view.ty + dy / hpx * view.dist * 0.55)); }
+  else {
+    const k = 5 / stage.clientWidth;
+    view.yaw -= dx * k; goal.yaw = view.yaw;
+    view.pitch = goal.pitch = Math.max(-0.5, Math.min(1.3, view.pitch + dy * k * 0.7));
+    const now = performance.now(); vYaw = (-dx * k) / Math.max(0.008, (now - drag.tl) / 1000); drag.tl = now;
+  }
+  drag.x = e.clientX; drag.y = e.clientY; lastInput = performance.now();
+});
+function endPointer(e) {
+  pointers.delete(e.pointerId);
+  if (pointers.size < 2) pinch = null;
+  if (pointers.size === 0) {
+    stage.classList.remove("grabbing");
+    if (drag && !drag.moved && meshes.length) { const h = pick(e.clientX, e.clientY); select(h ? (h.part === sel ? null : h.part) : null, h && h.point); }
+    if (drag && performance.now() - drag.tl > 90) vYaw = 0;
+    vYaw = Math.max(-5, Math.min(5, vYaw)); drag = null; lastInput = performance.now();
+  }
+}
+stage.addEventListener("pointerup", endPointer); stage.addEventListener("pointercancel", endPointer);
+stage.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse" && hover) { hover = null; stage.classList.remove("over-part"); } });
+stage.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const f = Math.exp(e.deltaY * 0.0012);
+  // zoom toward the point under the cursor (vertically)
+  const r = stage.getBoundingClientRect(), fy = (e.clientY - r.top) / r.height - 0.5;
+  goal.dist = Math.max(0.35, Math.min(5.5, goal.dist * f));
+  if (f < 1) goal.ty = Math.max(0.05, Math.min(1.8, goal.ty - fy * view.dist * 0.35 * (1 - f) * 2.2));
+  lastInput = performance.now();
+}, { passive: false });
+stage.addEventListener("keydown", (e) => {
+  const i = sel ? ORDER.indexOf(sel) : -1;
+  if (e.key === "ArrowLeft") goal.yaw += 0.26; else if (e.key === "ArrowRight") goal.yaw -= 0.26;
+  else if (e.key === "ArrowUp") goal.ty = Math.min(1.8, goal.ty + 0.1); else if (e.key === "ArrowDown") goal.ty = Math.max(0.05, goal.ty - 0.1);
+  else if (e.key === "+" || e.key === "=") goal.dist = Math.max(0.35, goal.dist * 0.85); else if (e.key === "-") goal.dist = Math.min(5.5, goal.dist / 0.85);
+  else if (e.key === "Tab" && !e.shiftKey && i < ORDER.length - 1) { e.preventDefault(); select(ORDER[i + 1]); focusSel(); return; }
+  else if (e.key === "Escape") { select(null); return; }
+  else return;
+  e.preventDefault(); lastInput = performance.now(); vYaw = 0;
+});
+
+// =====================================================================
+// UI
+// =====================================================================
+const $ = (id) => document.getElementById(id);
+const tagEl = $("tag"), card = $("card");
+const layersEl = $("layers");
+Object.keys(SYS).forEach((k) => {
+  const b = document.createElement("button"); b.type = "button"; b.className = "layer"; b.setAttribute("aria-pressed", "true"); b.style.setProperty("--c", "var(" + SYS[k].css + ")");
+  b.innerHTML = '<span class="dot"></span><span>' + SYS[k].name + '</span><span class="n">' + INDEX[k].length + "</span>";
+  b.onclick = () => { layersOn[k] = !layersOn[k]; b.setAttribute("aria-pressed", String(layersOn[k])); if (!layersOn[k] && sel && P[sel].sys === k && k !== "skin") select(null); applyVisibility(); };
+  layersEl.appendChild(b);
+});
+const skinIn = $("skin-op"), skinOut = $("skin-out");
+skinIn.oninput = () => { skinOpacity = skinIn.value / 100; skinOut.textContent = skinIn.value + " %"; applyVisibility(); };
+const zonesEl = $("zones");
+Object.keys(ZONES).forEach((z) => { const b = document.createElement("button"); b.type = "button"; b.className = "pill"; b.textContent = z; b.onclick = () => { goal.ty = ZONES[z][0]; goal.dist = ZONES[z][1]; lastInput = performance.now(); }; zonesEl.appendChild(b); });
+const spinBtn = $("spin");
+const setSpin = (v) => { autoSpin = v; spinBtn.setAttribute("aria-pressed", String(v)); if (!v) vYaw = 0; };
+spinBtn.onclick = () => setSpin(!autoSpin); setSpin(autoSpin);
+const VIEWS = { front: [0.4, 0.06], side: [0.4 + Math.PI / 2, 0.06], back: [0.4 + Math.PI, 0.08] };
+document.querySelectorAll("[data-view]").forEach((b) => (b.onclick = () => {
+  const [ty, tp] = VIEWS[b.dataset.view];
+  goal.yaw = view.yaw + (((ty - view.yaw) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI); goal.pitch = tp; setSpin(false);
+}));
+const indexEl = $("index");
+Object.keys(INDEX).forEach((k) => {
+  const g = document.createElement("div"); g.className = "group"; g.style.setProperty("--c", "var(" + SYS[k].css + ")");
+  g.innerHTML = "<h4>" + SYS[k].label + "</h4>";
+  const row = document.createElement("div"); row.className = "row";
+  INDEX[k].forEach((id) => { const b = document.createElement("button"); b.type = "button"; b.className = "pill"; b.dataset.chip = id; b.textContent = P[id].name; b.setAttribute("aria-pressed", "false"); b.onclick = () => { if (id === sel) { select(null); return; } select(id); focusSel(); }; row.appendChild(b); });
+  g.appendChild(row); indexEl.appendChild(g);
+});
+const chips = [...document.querySelectorAll("[data-chip]")];
+const focusBtn = $("focus-btn"), isoBtn = $("isolate-btn");
+focusBtn.onclick = () => focusSel();
+isoBtn.onclick = () => { isolate = !isolate; isoBtn.setAttribute("aria-pressed", String(isolate)); isoBtn.textContent = isolate ? "Mostrar todo" : "Aislar"; applyVisibility(); };
+function centerOf(id) {
+  const box = new T3.Box3(); let any = false;
+  meshes.forEach((m) => { if (m.userData.part === id) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox); any = true; } });
+  return any ? box : null;
+}
+function focusSel() {
+  if (!sel) return;
+  const b = centerOf(sel); if (!b) return;
+  const c = b.getCenter(new T3.Vector3()), s = b.getSize(new T3.Vector3());
+  goal.ty = c.y; goal.dist = Math.max(0.4, Math.min(3.0, Math.max(s.y, s.x * 1.3) * 2.4 + 0.25));
+  if (!selPoint || selPoint.__auto) { selPoint = c.clone(); selPoint.__auto = true; }
+  lastInput = performance.now();
+}
+function select(id, point) {
+  sel = id;
+  selPoint = id ? (point || null) : null;
+  chips.forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.chip === id)));
+  focusBtn.disabled = !id; isoBtn.disabled = !id;
+  if (!id && isolate) { isolate = false; isoBtn.setAttribute("aria-pressed", "false"); isoBtn.textContent = "Aislar"; }
+  if (id && !selPoint) { const b = centerOf(id); if (b) { selPoint = b.getCenter(new T3.Vector3()); selPoint.__auto = true; } }
+  if (id && P[id].sys !== "skin" && !layersOn[P[id].sys]) { layersOn[P[id].sys] = true; layersEl.children[Object.keys(SYS).indexOf(P[id].sys)].setAttribute("aria-pressed", "true"); }
+  applyVisibility();
+  if (!id) {
+    card.style.setProperty("--c", "var(--sys-skin)");
+    $("i-sys").textContent = "Cuerpo humano"; $("i-name").textContent = "Toca una parte";
+    $("i-fn").textContent = "Un adulto tiene 206 huesos, unos 78 órganos y cerca de 100 000 km de vasos sanguíneos. Toca cualquier estructura del modelo, o elígela en el índice, para ver su nombre y su función.";
+    $("i-fact").textContent = "La piel es el órgano más grande: unos 2 m² y 4 kg."; $("i-now").textContent = "";
+    $("hint").textContent = "Arrastra · toca una parte"; tagEl.classList.remove("on"); return;
+  }
+  const p = P[id], s = SYS[p.sys];
+  card.style.setProperty("--c", "var(" + s.css + ")");
+  $("i-sys").textContent = s.label; $("i-name").textContent = p.name; $("i-fn").textContent = p.fn; $("i-fact").textContent = p.fact;
+  tagEl.textContent = p.name; tagEl.classList.add("on"); $("hint").textContent = "Toca otra parte o fuera para soltar";
+}
+
+// =====================================================================
+// Loop
+// =====================================================================
+const viewEl = $("view"), angleEl = $("angle"), readout = $("readout"), nowEl = $("i-now");
+let last = 0, t = 0, visible = true, running = false;
+const tmp = new T3.Vector3();
+function frame(now) {
+  running = false;
+  const dt = last ? Math.min((now - last) / 1000, 0.05) : 1 / 60; last = now;
+  const calm = still.matches;
+  if (!calm) t += dt;
+  // orbit easing
+  if (!drag && !pinch) {
+    if (autoSpin && !calm && now - lastInput > 3000) vYaw += (0.22 - vYaw) * (1 - Math.exp(-dt / 1.5));
+    else vYaw *= Math.exp(-dt / 0.5);
+    view.yaw += vYaw * dt; goal.yaw += vYaw * dt;
+  }
+  const ease = 1 - Math.exp(-dt / 0.22);
+  view.yaw += (goal.yaw - view.yaw) * ease; view.pitch += (goal.pitch - view.pitch) * ease;
+  view.dist += (goal.dist - view.dist) * ease; view.ty += (goal.ty - view.ty) * ease;
+  placeCamera();
+  // life: heartbeat and breathing
+  const beat = (t * 1.2) % 1, b = beat < 0.35 ? Math.sin(beat / 0.35 * Math.PI) : 0;
+  const breath = 0.5 - 0.5 * Math.cos(t * 2 * Math.PI / 4.3);
+  meshes.forEach((m) => {
+    if (m.userData.beat) { m.scale.setScalar(1 - 0.035 * b); m.position.set(0.022 * 0.035 * b, 1.21 * 0.035 * b, 0.05 * 0.035 * b); }
+    if (m.userData.part === "lungs") { const s = 1 + 0.03 * breath; m.scale.set(s, 1 + 0.02 * breath, s); m.position.set(0, -1.23 * 0.02 * breath, 0); }
+    if (m.userData.part === "ribs" || m.userData.part === "sternum") { m.rotation.x = -0.012 * breath; }
+  });
+  applyHighlight(0.5 + 0.5 * Math.sin(now / 1000 * 4));
+  renderer.render(scene, camera);
+  // tag
+  if (selPoint && sel) {
+    tmp.copy(selPoint); body.localToWorld(tmp); tmp.project(camera);
+    const x = (tmp.x * 0.5 + 0.5) * stage.clientWidth, y = (-tmp.y * 0.5 + 0.5) * stage.clientHeight;
+    const off = tmp.z > 1 || x < 0 || x > stage.clientWidth || y < 0 || y > stage.clientHeight;
+    tagEl.style.transform = "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) translate(-50%,calc(-100% - 18px))";
+    tagEl.style.visibility = off ? "hidden" : "visible";
+  }
+  const deg = Math.round((((view.yaw - 0.4) * 180 / Math.PI) % 360 + 360) % 360);
+  angleEl.textContent = deg + "° · zoom " + (3.9 / view.dist).toFixed(1) + "×";
+  const vn = deg < 45 || deg >= 315 ? "Vista anterior" : deg < 135 ? "Perfil derecho" : deg < 225 ? "Vista posterior" : "Perfil izquierdo";
+  if (viewEl.textContent !== vn) viewEl.textContent = vn;
+  const rtxt = "72 lpm · " + (breath > 0.5 ? "inspiración" : "espiración");
+  if (readout.textContent !== rtxt) readout.textContent = rtxt;
+  const n = sel === "heart" ? (b > 0.1 ? "Ahora: sístole, los ventrículos se contraen" : "Ahora: diástole, se llena de sangre") : sel === "lungs" ? (breath > 0.5 ? "Ahora: inspiración, se expanden" : "Ahora: espiración, se vacían") : sel === "ribs" ? "Ahora: suben y bajan con cada respiración" : "";
+  if (nowEl.textContent !== n) nowEl.textContent = n;
+  if (visible) { running = true; requestAnimationFrame(frame); }
+}
+new IntersectionObserver((en) => { visible = en[en.length - 1].isIntersecting; if (visible && !running && meshes.length) { last = 0; running = true; requestAnimationFrame(frame); } }, { rootMargin: "100px 0px" }).observe(stage);
+resize(); placeCamera();
+
+// build progressively
+let jobIndex = 0;
+function nextJob() {
+  if (jobIndex >= JOBS.length) {
+    $("loading").remove(); applyVisibility(); select(null);
+    running = true; requestAnimationFrame(frame); return;
+  }
+  const [label, fn] = JOBS[jobIndex];
+  loadText.textContent = "Construyendo: " + label;
+  loadBar.style.width = Math.round((jobIndex / JOBS.length) * 100) + "%";
+  setTimeout(() => {
+    try { fn(); } catch (err) { console.error(label, err); }
+    jobIndex++;
+    renderer.render(scene, camera);
+    setTimeout(nextJob, 0);
+  }, 16);
+}
+nextJob();
+window.__body = { select, focusSel, meshes, view, goal };
+})();
+</script>
